@@ -78,6 +78,7 @@ async fn main() {
             }
             Err(e) => {
                 eprintln!("failed to sign: {e}");
+                process::exit(1);
             }
         }
     }

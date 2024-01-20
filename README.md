@@ -44,7 +44,7 @@ adopted.
 
 ## Usage
 
-This is a [Rust] library. Include viadkim in `Cargo.toml` as usual.
+This is a [Rust] library. Include [viadkim] in `Cargo.toml` as usual.
 
 Two structs provide the entry points to DKIM processing with viadkim:
 
@@ -56,6 +56,7 @@ See the [API documentation] for usage instructions.
 The minimum supported Rust version is 1.67.0.
 
 [Rust]: https://www.rust-lang.org
+[viadkim]: https://crates.io/crates/viadkim
 [`Signer`]: https://docs.rs/viadkim/0.1.0/viadkim/signer/struct.Signer.html
 [`Verifier`]: https://docs.rs/viadkim/0.1.0/viadkim/verifier/struct.Verifier.html
 [API documentation]: https://docs.rs/viadkim
@@ -106,7 +107,7 @@ that the whole message reside in memory at once.
 
 ## Licence
 
-Copyright © 2022–2023 David Bürgin
+Copyright © 2022–2024 David Bürgin
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
