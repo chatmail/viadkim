@@ -91,9 +91,13 @@ cargo run --features hickory-resolver \
 ```
 
 In both examples, export the environment variable `RUST_LOG=viadkim=trace` to
-enable the library’s trace logging.
+enable the library’s trace logging. Edit the examples to experiment with various
+configuration options.
 
-Edit these examples to experiment with various configuration options.
+For interactive use of the viadkim library, please see the (as yet unreleased)
+command-line utility [dkimdo].
+
+[dkimdo]: https://crates.io/crates/dkimdo
 
 ## Acknowledgements
 
