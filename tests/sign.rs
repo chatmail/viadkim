@@ -4,7 +4,7 @@ use std::str::FromStr;
 use viadkim::{
     header::{FieldBody, FieldName, HeaderFields},
     signature::{CanonicalizationAlgorithm, DomainName, Selector, SigningAlgorithm},
-    signer::{SignRequest, Timestamp},
+    signer::{Expiration, SignRequest, Timestamp},
 };
 
 #[tokio::test]
@@ -26,7 +26,7 @@ async fn basic_sign() {
 
     request.canonicalization = (Relaxed, Relaxed).into();
     request.timestamp = Timestamp::Exact(1686737001);
-    request.valid_duration = None;
+    request.expiration = Expiration::Never;
     request.format.header_name = "DKiM-Signature".into();
     request.format.line_width = 64.try_into().unwrap();
     request.format.indentation = "  ".into();

@@ -4,8 +4,8 @@ use tokio::{
     io::{self, AsyncReadExt},
 };
 use viadkim::{
-    crypto::HashAlgorithm, DomainName, Selector, SignRequest, Signer, SigningAlgorithm, SigningKey,
-    SigningOutput,
+    crypto::HashAlgorithm, signer::Expiration, DomainName, Selector, SignRequest, Signer,
+    SigningAlgorithm, SigningKey, SigningOutput,
 };
 
 #[tokio::main]
@@ -40,7 +40,7 @@ async fn main() {
         SigningAlgorithm::from_parts(signing_key.key_type(), HashAlgorithm::Sha256).unwrap();
 
     let mut request = SignRequest::new(domain, selector, algorithm, signing_key);
-    request.valid_duration = None;
+    request.expiration = Expiration::Never;
     //
     // Experiment with the various configuration options here.
     //

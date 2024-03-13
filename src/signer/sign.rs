@@ -21,8 +21,8 @@ use crate::{
     signer::{
         self,
         format::{self, UnsignedDkimSignature},
-        BodyLength, HeaderSelection, OutputFormat, SignRequest, SigningError, SigningOutput,
-        Timestamp,
+        BodyLength, Expiration, HeaderSelection, OutputFormat, SignRequest, SigningError,
+        SigningOutput, Timestamp,
     },
 };
 use std::{collections::HashSet, time::SystemTime};
@@ -88,16 +88,8 @@ where
 
     // calculate timestamp and expiration
 
-    let timestamp = match request.timestamp {
-        Timestamp::None => None,
-        Timestamp::Now => Some(now_unix_secs()),
-        Timestamp::Exact(t) => Some(t),
-    };
-
-    let expiration = request.valid_duration.map(|duration| {
-        timestamp.unwrap_or_else(now_unix_secs)
-            .saturating_add(duration.as_secs())
-    });
+    let (timestamp, expiration) =
+        compute_t_and_x(request.timestamp, request.expiration, now_unix_secs);
 
     // calculate z= tag copied headers
 
@@ -192,6 +184,40 @@ async fn produce_signature(
     })
 }
 
+fn compute_t_and_x(
+    timestamp: Timestamp,
+    expiration: Expiration,
+    now_secs: fn() -> u64,
+) -> (Option<u64>, Option<u64>) {
+    let mut timestamp = match timestamp {
+        Timestamp::None => None,
+        Timestamp::Now => Some(now_secs()),
+        Timestamp::Exact(t) => Some(t),
+    };
+
+    let expiration = match expiration {
+        Expiration::Never => None,
+        Expiration::After(duration) => {
+            let s = duration.as_secs();
+            Some(timestamp.unwrap_or_else(now_secs).saturating_add(s))
+        }
+        Expiration::Exact(x) => Some(x),
+    };
+
+    // On request, viadkim will produce unrealistically large t= and x= values,
+    // but never combinations that are invalid. To this end, and keeping in mind
+    // that we ruled out some invalid inputs in SignRequest validation, now make
+    // sure t= is before x=.
+    if let (Some(t), Some(x)) = (timestamp, expiration) {
+        assert!(x > 0);
+        if t >= x {
+            timestamp = Some(x - 1);
+        }
+    }
+
+    (timestamp, expiration)
+}
+
 fn now_unix_secs() -> u64 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -240,5 +266,31 @@ async fn sign_hash(
             trace!("Ed25519 signing successful");
             Ok(s)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn compute_t_and_x_ok() {
+        use super::{Expiration as X, Timestamp as T};
+
+        let secs = Duration::from_secs;
+        let compute2 = |t, x| compute_t_and_x(t, x, || unreachable!());
+        let compute3 = compute_t_and_x;
+
+        assert_eq!(compute2(T::None, X::Never), (None, None));
+        assert_eq!(compute2(T::None, X::Exact(3)), (None, Some(3)));
+        assert_eq!(compute2(T::Exact(1), X::After(secs(3))), (Some(1), Some(4)));
+        assert_eq!(compute2(T::Exact(1), X::Exact(3)), (Some(1), Some(3)));
+
+        assert_eq!(compute3(T::None, X::After(secs(3)), || 1), (None, Some(4)));
+        assert_eq!(compute3(T::Now, X::Never, || 1), (Some(1), None));
+        assert_eq!(compute3(T::Now, X::After(secs(3)), || 1), (Some(1), Some(4)));
+        assert_eq!(compute3(T::Now, X::Exact(3), || 1), (Some(1), Some(3)));
+        assert_eq!(compute3(T::Now, X::Exact(3), || 3), (Some(2), Some(3)));
     }
 }

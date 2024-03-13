@@ -40,7 +40,7 @@ use std::{
     time::Duration,
 };
 
-/// A generator for the body length limit tag.
+/// A generator for the body length limit tag (*l=*).
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum BodyLength {
     /// Do not limit the body length: no *l=* tag.
@@ -63,12 +63,27 @@ impl BodyLength {
     }
 }
 
-/// A generator for the timestamp tag.
+/// A generator for the timestamp tag (*t=*).
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Timestamp {
+    /// No *t=* tag.
     None,
+    /// The current timestamp when signing.
     #[default]
     Now,
+    /// Exactly the given timestamp in *t=*.
+    Exact(u64),
+}
+
+/// A generator for the expiration tag (*x=*).
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub enum Expiration {
+    /// No *x=* tag.
+    #[default]
+    Never,
+    /// The duration for which the signature will remain valid.
+    After(Duration),
+    /// Exactly the given timestamp in *x=*.
     Exact(u64),
 }
 
@@ -165,6 +180,7 @@ pub enum RequestError {
     InvalidSignedFieldName,
     DomainMismatch,
     ZeroExpirationDuration,
+    TimestampNotBeforeExpiration,
     InvalidExtTags,
     InvalidDkimSignatureHeaderName,
     InvalidIndentationWhitespace,
@@ -182,6 +198,7 @@ impl Display for RequestError {
             Self::InvalidSignedFieldName => write!(f, "invalid signed header name"),
             Self::DomainMismatch => write!(f, "domain mismatch"),
             Self::ZeroExpirationDuration => write!(f, "zero expiration duration"),
+            Self::TimestampNotBeforeExpiration => write!(f, "timestamp not before expiration"),
             Self::InvalidExtTags => write!(f, "invalid extension tags"),
             Self::InvalidDkimSignatureHeaderName => write!(f, "invalid DKIM-Signature header name"),
             Self::InvalidIndentationWhitespace => write!(f, "invalid indentation whitespace"),
@@ -272,8 +289,8 @@ pub struct SignRequest<T> {
     pub selector: Selector,
     /// The timestamp value to record in the *t=* tag.
     pub timestamp: Timestamp,
-    /// The duration for which the signature will remain valid (*x=* tag).
-    pub valid_duration: Option<Duration>,
+    /// The expiration timestamp to specify in the *x=* tag.
+    pub expiration: Expiration,
     /// Whether to record all headers used to create the signature in the *z=*
     /// tag.
     pub copy_headers: bool,
@@ -286,6 +303,11 @@ pub struct SignRequest<T> {
 }
 
 impl<T> SignRequest<T> {
+    /// Creates a request for signing using practical default values.
+    ///
+    /// The default settings used are not necessarily the `Default` values of
+    /// each type, but values that are sensible in practice: *c=* is
+    /// *relaxed/simple*, *x=* is five days.
     pub fn new(
         domain: DomainName,
         selector: Selector,
@@ -294,6 +316,9 @@ impl<T> SignRequest<T> {
     ) -> Self {
         use CanonicalizationAlgorithm::*;
 
+        // Canonicalization relaxed/simple is a good, compatible default.
+        let canonicalization = Canonicalization::from((Relaxed, Simple));
+
         // The default validity period of five days follows the traditionally
         // recommended time for retrying message delivery; see RFC 5321, section
         // 4.5.4.1: ‘Retries continue until the message is transmitted or the
@@ -301,9 +326,6 @@ impl<T> SignRequest<T> {
         // days.’
         // Five days is also used as duration in the example in RFC 6376, §3.5.
         let five_days = Duration::from_secs(60 * 60 * 24 * 5);
-
-        // Canonicalization relaxed/simple is a good, compatible default.
-        let canonicalization = Canonicalization::from((Relaxed, Simple));
 
         Self {
             signing_key,
@@ -316,7 +338,7 @@ impl<T> SignRequest<T> {
             body_length: BodyLength::NoLimit,
             selector,
             timestamp: Timestamp::Now,
-            valid_duration: Some(five_days),
+            expiration: Expiration::After(five_days),
             copy_headers: false,
             ext_tags: vec![],
 
@@ -345,11 +367,7 @@ fn validate_request<T: AsRef<SigningKey>>(request: &SignRequest<T>) -> Result<()
         }
     }
 
-    if let Some(duration) = request.valid_duration {
-        if duration.as_secs() == 0 {
-            return Err(RequestError::ZeroExpirationDuration);
-        }
-    }
+    validate_timestamps(request.timestamp, request.expiration)?;
 
     let mut tags_seen = HashSet::new();
     if request.ext_tags.iter().any(|(name, value)| {
@@ -368,6 +386,30 @@ fn validate_request<T: AsRef<SigningKey>>(request: &SignRequest<T>) -> Result<()
     let indent = &request.format.indentation;
     if indent.is_empty() || indent.chars().any(|c| !parse::is_wsp(c)) {
         return Err(RequestError::InvalidIndentationWhitespace);
+    }
+
+    Ok(())
+}
+
+fn validate_timestamps(timestamp: Timestamp, expiration: Expiration) -> Result<(), RequestError> {
+    if let Expiration::After(duration) = expiration {
+        if duration.as_secs() == 0 {
+            return Err(RequestError::ZeroExpirationDuration);
+        }
+    }
+
+    // Any combination making use of the ‘now’ timestamp cannot be checked here,
+    // only at signing time. What we can do is make sure any inclusion of
+    // `*::Exact` will be respected, and will not produce invalid t=/x=.
+    match (timestamp, expiration) {
+        (Timestamp::Exact(t), Expiration::Exact(x)) if t >= x => {
+            return Err(RequestError::TimestampNotBeforeExpiration);
+        }
+        (Timestamp::Now, Expiration::Exact(0))
+        | (Timestamp::Exact(u64::MAX), Expiration::After(_)) => {
+            return Err(RequestError::TimestampNotBeforeExpiration);
+        }
+        _ => {}
     }
 
     Ok(())
@@ -660,5 +702,31 @@ mod tests {
             .into_iter()
             .map(|name| FieldName::new(name).unwrap())
             .collect()
+    }
+
+    #[test]
+    fn validate_timestamps_ok() {
+        use super::{
+            Expiration as X,
+            RequestError::{TimestampNotBeforeExpiration as TNBE, ZeroExpirationDuration as ZED},
+            Timestamp as T,
+        };
+
+        let secs = Duration::from_secs;
+
+        assert_eq!(validate_timestamps(T::None, X::Never), Ok(()));
+        assert_eq!(validate_timestamps(T::None, X::After(secs(0))), Err(ZED));
+        assert_eq!(validate_timestamps(T::None, X::After(secs(3))), Ok(()));
+        assert_eq!(validate_timestamps(T::None, X::Exact(0)), Ok(()));
+        assert_eq!(validate_timestamps(T::None, X::Exact(3)), Ok(()));
+        assert_eq!(validate_timestamps(T::Now, X::Never), Ok(()));
+        assert_eq!(validate_timestamps(T::Now, X::After(secs(0))), Err(ZED));
+        assert_eq!(validate_timestamps(T::Now, X::After(secs(3))), Ok(()));
+        assert_eq!(validate_timestamps(T::Now, X::Exact(0)), Err(TNBE));
+        assert_eq!(validate_timestamps(T::Now, X::Exact(3)), Ok(()));
+        assert_eq!(validate_timestamps(T::Exact(3), X::Never), Ok(()));
+        assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(0))), Err(ZED));
+        assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(3))), Ok(()));
+        assert_eq!(validate_timestamps(T::Exact(u64::MAX), X::After(secs(3))), Err(TNBE));
     }
 }
