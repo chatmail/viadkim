@@ -64,7 +64,7 @@ impl<'a> AsRef<[TagSpec<'a>]> for TagList<'a> {
 impl<'a> TagList<'a> {
     pub fn from_str(s: &'a str) -> Result<Self, ParseTagListError> {
         match strip_tag_list(s) {
-            Some((rest, tag_list)) if rest.is_empty() => {
+            Some(("", tag_list)) => {
                 let mut names_seen = HashSet::new();
                 if tag_list.iter().any(|tag| !names_seen.insert(tag.name)) {
                     return Err(ParseTagListError::DuplicateTag);
