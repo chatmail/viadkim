@@ -64,6 +64,10 @@ impl DomainName {
     /// Equivalence comparison is case-insensitive; IDNA-equivalence comparisons
     /// are done in viadkim where necessary but are not part of the type’s own
     /// equivalence relations.
+    ///
+    /// # Errors
+    ///
+    /// If the given string is not a valid domain name, an error is returned.
     pub fn new(s: impl Into<Box<str>>) -> Result<Self, ParseDomainError> {
         let s = s.into();
         if is_valid_domain_name(&s) {
@@ -73,8 +77,8 @@ impl DomainName {
         }
     }
 
-    /// Compares this and the given domain for equivalence, in case-insensitive
-    /// and IDNA-aware manner.
+    /// Compares this and the given domain for equivalence/subdomain
+    /// relationship, in case-insensitive and IDNA-aware manner.
     pub fn eq_or_subdomain_of(&self, other: &Self) -> bool {
         if self == other {
             return true;
@@ -163,6 +167,10 @@ impl Selector {
     /// Equivalence comparison is case-insensitive; IDNA-equivalence comparisons
     /// are done in viadkim where necessary but are not part of the type’s own
     /// equivalence relations.
+    ///
+    /// # Errors
+    ///
+    /// If the given string is not a valid selector, an error is returned.
     pub fn new(s: impl Into<Box<str>>) -> Result<Self, ParseDomainError> {
         let s = s.into();
         if is_valid_selector(&s) {
@@ -294,7 +302,7 @@ impl Display for ParseIdentityError {
 
 impl Error for ParseIdentityError {}
 
-/// An agent or user identifier.
+/// An agent or user identifier (AUID).
 ///
 /// This type is used to wrap addresses as used in the *i=* tag.
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -310,7 +318,11 @@ pub struct Identity {
 }
 
 impl Identity {
-    /// Creates a new agent or user identifier from the given string.
+    /// Creates a new agent or user identifier (AUID) from the given string.
+    ///
+    /// # Errors
+    ///
+    /// If the given string is not a valid AUID, an error is returned.
     pub fn new(s: &str) -> Result<Self, ParseIdentityError> {
         let (local_part, domain) = s.rsplit_once('@').ok_or(ParseIdentityError)?;
 
@@ -450,6 +462,9 @@ impl Display for ParseAlgorithmError {
 impl Error for ParseAlgorithmError {}
 
 /// A signing algorithm.
+///
+/// When **feature `pre-rfc8301`**  is enabled, this enum has a third variant
+/// `RsaSha1` representing the *rsa-sha1* signing algorithm.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum SigningAlgorithm {
     /// The *rsa-sha256* signing algorithm.
@@ -660,7 +675,7 @@ pub const DKIM_SIGNATURE_NAME: &str = "DKIM-Signature";
 
 /// An error that occurs when parsing a DKIM signature for further processing.
 ///
-/// The error comes with salvaged data from the failed parsing attempt, that
+/// The error comes with salvaged data from the failed parsing attempt that
 /// could be reported in an *Authentication-Results* header. This data is in raw
 /// (string) form because it might fail to parse into a concrete type.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -706,35 +721,66 @@ impl Error for DkimSignatureError {}
 /// The type of the error caused by an invalid DKIM signature.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DkimSignatureErrorKind {
+    /// Invalid UTF-8 in *DKIM-Signature* header.
     Utf8Encoding,
+    /// The tag list is syntactically invalid.
     TagListFormat,
+    /// Incompatible DKIM version.
     IncompatibleVersion,
+    /// Use of a historic signature algorithm. (Note: only used when feature
+    /// `pre-rfc8301` is not enabled.)
     HistoricAlgorithm,
+    /// The algorithm in *a=* is not supported.
     UnsupportedAlgorithm,
+    /// Invalid Base64 in DKIM signature.
     InvalidBase64,
+    /// The *b=* tag is empty.
     EmptySignatureTag,
+    /// The *bh=* tag is empty.
     EmptyBodyHashTag,
+    /// The algorithm in *c=* is not supported.
     UnsupportedCanonicalization,
+    /// The signing domain in *d=* is syntactically invalid.
     InvalidDomain,
+    /// Invalid value in *h=*.
     InvalidSignedHeaderName,
+    /// The *h=* tag is empty.
     EmptySignedHeadersTag,
+    /// *From* is not included in *h=*.
     FromHeaderNotSigned,
+    /// The AUID in *i=* is syntactically invalid.
     InvalidIdentity,
+    /// Invalid value in *l=*.
     InvalidBodyLength,
+    /// Invalid value in *q=*.
     InvalidQueryMethod,
+    /// No supported query methods in *q=*.
     NoSupportedQueryMethods,
+    /// The selector in *s=* is syntactically invalid.
     InvalidSelector,
+    /// Invalid value in *t=*.
     InvalidTimestamp,
+    /// Invalid value in *x=*.
     InvalidExpiration,
+    /// A header field in *z=* is syntactically invalid.
     InvalidCopiedHeaderField,
+    /// The *v=* tag is missing.
     MissingVersionTag,
+    /// The *a=* tag is missing.
     MissingAlgorithmTag,
+    /// The *b=* tag is missing.
     MissingSignatureTag,
+    /// The *bh=* tag is missing.
     MissingBodyHashTag,
+    /// The *d=* tag is missing.
     MissingDomainTag,
+    /// The *h=* tag is missing.
     MissingSignedHeadersTag,
+    /// The *s=* tag is missing.
     MissingSelectorTag,
+    /// The *i=* domain is not equal to or a subdomain of the *d=* domain.
     DomainMismatch,
+    /// The *x=* timestamp is not after the *i=* timestamp.
     ExpirationNotAfterTimestamp,
 }
 

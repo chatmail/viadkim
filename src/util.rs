@@ -46,6 +46,10 @@ impl Display for Base64Error {
 impl Error for Base64Error {}
 
 /// Decodes binary data from a Base64-encoded string.
+///
+/// # Errors
+///
+/// If the input is not valid Base64, an error is returned.
 pub fn decode_base64(input: &str) -> Result<Vec<u8>, Base64Error> {
     Base64::decode_vec(input).map_err(|_| Base64Error)
 }

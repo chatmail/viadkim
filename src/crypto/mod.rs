@@ -123,9 +123,9 @@ impl fmt::Debug for KeyType {
 
 /// A hash algorithm.
 ///
-/// When **feature `pre-rfc8301`**  is enabled, this enum will have a second
-/// variant `Sha1` representing the SHA-1 hash algorithm. This variant is hidden
-/// behind a feature flag, because SHA-1 is insecure and its use is strongly
+/// When **feature `pre-rfc8301`**  is enabled, this enum has a second variant
+/// `Sha1` representing the SHA-1 hash algorithm. This variant is hidden behind
+/// a feature flag, because SHA-1 is insecure and its use is strongly
 /// discouraged.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum HashAlgorithm {
@@ -137,6 +137,7 @@ pub enum HashAlgorithm {
 }
 
 impl HashAlgorithm {
+    /// Returns a vector with the known hash algorithms.
     pub fn all() -> Vec<Self> {
         vec![
             Self::Sha256,
@@ -171,9 +172,13 @@ impl fmt::Debug for HashAlgorithm {
 /// An error that occurs when reading a signing key from PKCS#8 PEM.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DecodeSigningKeyError {
+    /// Not a valid PEM-encoded document.
     InvalidPemDocument,
+    /// The PEM-encoded document is not labelled ‘PRIVATE KEY’.
     NotAPrivateKeyInfoDocument,
+    /// The PEM-encoded document does not contain valid PKCS#8 `PrivateKeyInfo`.
     InvalidKeyData,
+    /// Failure to decode PKCS#8 `PrivateKeyInfo` as a signing key.
     UnsupportedKeyType,
 }
 
@@ -221,6 +226,11 @@ impl SigningKey {
 
     /// Deserialises a signing key from the PKCS#8 PEM private key info in the
     /// given string.
+    ///
+    /// # Errors
+    ///
+    /// If the string cannot be decoded as one of the supported `SigningKey`
+    /// variants, an error is returned.
     pub fn from_pkcs8_pem(s: &str) -> Result<Self, DecodeSigningKeyError> {
         let (label, doc) = Document::from_pem(s)
             .map_err(|_| DecodeSigningKeyError::InvalidPemDocument)?;
@@ -270,6 +280,10 @@ impl VerifyingKey {
     }
 
     /// Validates this key’s minimum required size, if any.
+    ///
+    /// # Errors
+    ///
+    /// If the key is smaller than the required key size, an error is returned.
     pub fn validate_min_key_size(&self) -> Result<(), VerificationError> {
         match (self, self.key_size()) {
             (Self::Rsa(_), Some(n)) if n < self::rsa::MIN_KEY_BITS => {
@@ -282,6 +296,12 @@ impl VerifyingKey {
 
     /// Constructs a verifying key from key data found in a DKIM public key
     /// record.
+    ///
+    /// # Errors
+    ///
+    /// If decoding the verifying key fails, an opaque error from the underlying
+    /// library is returned; if instead a [`VerificationError`] is desired, the
+    /// variant `VerificationError::InvalidKey` should be used.
     pub fn from_key_data(
         key_type: KeyType,
         key_data: &[u8],
@@ -302,6 +322,7 @@ impl VerifyingKey {
 /// An error that occurs when producing a cryptographic signature.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SigningError {
+    /// Failure to perform the signing operation.
     SigningFailure,
 }
 
@@ -318,8 +339,11 @@ impl Error for SigningError {}
 /// An error that occurs when verifying a cryptographic signature.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum VerificationError {
+    /// Key data is invalid.
     InvalidKey,
+    /// Key of smaller than required key size.
     InsufficientKeySize,
+    /// The verification operation produced a failure result.
     VerificationFailure,
 }
 

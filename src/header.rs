@@ -75,6 +75,11 @@ pub struct FieldName(Box<str>);
 impl FieldName {
     /// Creates a new header field name containing the given string.
     ///
+    /// # Errors
+    ///
+    /// If the given value is not a valid header field name, an error is
+    /// returned.
+    ///
     /// # Examples
     ///
     /// ```
@@ -137,7 +142,13 @@ impl Hash for FieldName {
 pub struct FieldBody(Box<[u8]>);
 
 impl FieldBody {
-    /// Creates a new header field body containing the given bytes.
+    /// Creates a new header field body containing the given bytes. The input
+    /// must use CRLF for continuation lines.
+    ///
+    /// # Errors
+    ///
+    /// If the given value is not a valid header field body, an error is
+    /// returned.
     ///
     /// # Examples
     ///
@@ -210,6 +221,12 @@ fn split_crlf(mut value: &[u8]) -> impl Iterator<Item = &[u8]> {
 pub struct HeaderFields(Vec<HeaderField>);
 
 impl HeaderFields {
+    /// Creates a new collection of header fields.
+    ///
+    /// # Errors
+    ///
+    /// If the given value is not a valid collection of header fields, an error
+    /// is returned.
     pub fn new(value: impl Into<Vec<HeaderField>>) -> Result<Self, HeaderFieldError> {
         let value = value.into();
         if value.is_empty() {
@@ -218,6 +235,13 @@ impl HeaderFields {
         Ok(Self(value))
     }
 
+    /// Creates a new collection of header fields by converting the given
+    /// inputs.
+    ///
+    /// # Errors
+    ///
+    /// If the given value is not a valid collection of header fields, an error
+    /// is returned.
     pub fn from_vec(value: Vec<(String, Vec<u8>)>) -> Result<Self, HeaderFieldError> {
         let value: Vec<_> = value
             .into_iter()

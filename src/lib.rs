@@ -22,7 +22,7 @@
 //!
 //! The high-level API can be used to sign email messages using DKIM signatures
 //! (module `signer`), and to verify such signatures (module `verifier`). Most
-//! users will want to deal with DKIM via these APIs. For convenience, all the
+//! users will want to deal with DKIM via these APIs. For convenience, the most
 //! relevant items are re-exported at the top level.
 //!
 //! The high-level API exposes various configuration options for both the

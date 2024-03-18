@@ -96,6 +96,10 @@ impl Display for QuotedPrintableError {
 impl Error for QuotedPrintableError {}
 
 /// Decodes the bytes in a DKIM-Quoted-Printable-encoded string.
+///
+/// # Errors
+///
+/// If the input is not valid DKIM-Quoted-Printable, an error is returned.
 pub fn decode(mut s: &str) -> Result<Vec<u8>, QuotedPrintableError> {
     fn strip_dkim_safe_chars(input: &str) -> Option<&str> {
         input
@@ -172,6 +176,10 @@ fn strip_hex_octet(s: &str) -> Option<(&str, u8)> {
 // tokens and at the beginning and end is accepted.
 
 /// Decodes the bytes in an RFC 2045 *qp-section*.
+///
+/// # Errors
+///
+/// If the input is not valid Quoted-Printable, an error is returned.
 pub fn decode_qp_section(s: &str) -> Result<Vec<u8>, QuotedPrintableError> {
     let mut result = Vec::with_capacity(s.len());
 

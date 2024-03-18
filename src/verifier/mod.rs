@@ -89,7 +89,7 @@ pub struct Config {
     ///
     /// Note that there is a compile-time hard lower bound of acceptable key
     /// sizes, which will lead to failure to validate independent of this
-    /// setting. By default, the absolute minimum key size is 1024; if feature
+    /// setting. By default, the absolute minimum key size is 1024; when feature
     /// `pre-rfc8301` is enabled, the absolute minimum key size is 512.
     ///
     /// The default is 1024 bits.
@@ -335,20 +335,42 @@ impl Error for PolicyError {}
 /// An error that occurs when performing verification.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum VerificationError {
+    /// The *DKIM-Signature* header does not fulfil basic format requirements
+    /// (syntax or other).
     DkimSignatureFormat(DkimSignatureError),
+    /// Conversion from or to a requested integer data type is not supported in
+    /// this implementation or on the current platform.
     Overflow,
+    /// No public key record was found at the specified location in DNS.
     NoKeyFound,
+    /// The public key record domain name is syntactically invalid.
     InvalidKeyDomain,
+    /// The public key record query timed out.
     Timeout,
+    /// The public key record query failed due to an unspecified DNS error.
     KeyLookup,
+    /// The DKIM public key record does not fulfil basic format requirements
+    /// (syntax or other).
     KeyRecordFormat(DkimKeyRecordError),
+    /// The public key record uses a different key type.
     WrongKeyType,
+    /// The key in the public key record has been revoked.
     KeyRevoked,
+    /// The used hash algorithm is not allowed according to the public key
+    /// record.
     DisallowedHashAlgorithm,
+    /// The *i=* and *d=* domains differ while they must be equal according to
+    /// the public key record.
     DomainMismatch,
+    /// Failure when performing the cryptographic verification operation.
     VerificationFailure(crypto::VerificationError),
+    /// Less than the number of bytes specified in *l=* were fed to the
+    /// verification process.
     InsufficientContent,
+    /// The body hash did not match. (Note: implies that signature verification
+    /// was successful.)
     BodyHashMismatch,
+    /// Failure due to a local policy violation.
     Policy(PolicyError),
 }
 

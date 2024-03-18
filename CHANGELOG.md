@@ -12,10 +12,12 @@ minimum supported Rust version being considered breaking changes.
 ### Changed
 
 * When signing, specification of the *x=* tag is now done through field
-  `SignRequest::expiration` taking an `Expiration` value, instead of the former
-  `SignRequest::valid_duration`. The new error variant
-  `RequestError::TimestampNotBeforeExpiration` is used to signal that *t=* and
+  `SignRequest::expiration` taking an [`Expiration`] value, instead of the
+  former `SignRequest::valid_duration`. The new error variant
+  `RequestError::ExpirationNotAfterTimestamp` is used to signal that *t=* and
   *x=* conflict.
+
+[`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.1/viadkim/signer/enum.Expiration.html
 
 ## 0.1.0 (2023-11-24)
 

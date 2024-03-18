@@ -15,6 +15,9 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Computation of the message hashes.
+//!
+//! Use [`compute_data_hash`] to compute the *data hash*, and [`BodyHasher`] to
+//! compute the *body hash* (see RFC 6476, section 3.7).
 
 use crate::{
     canonicalize::{self, BodyCanonicalizer},
@@ -92,6 +95,10 @@ pub struct BodyHasherBuilder {
 }
 
 impl BodyHasherBuilder {
+    /// Creates a new builder for a body hasher.
+    ///
+    /// The argument controls whether the resulting body hasher will accept or
+    /// reject only partially hashed message bodies.
     pub fn new(fail_on_partially_hashed_input: bool) -> Self {
         Self {
             fail_on_truncate: fail_on_partially_hashed_input,
@@ -99,6 +106,8 @@ impl BodyHasherBuilder {
         }
     }
 
+    /// Registers a body hash request, ie the tuple (length limit of body
+    /// content, hash algorithm, body canonicalization algorithm).
     pub fn register_canonicalization(
         &mut self,
         len: Option<usize>,
@@ -108,6 +117,7 @@ impl BodyHasherBuilder {
         self.registrations.insert((len, hash, canon));
     }
 
+    /// Builds a body hasher that can answer all registered body hash requests.
     pub fn build(self) -> BodyHasher {
         use CanonicalizationAlgorithm::*;
 
@@ -126,8 +136,11 @@ impl BodyHasherBuilder {
 
 /// A producer of *body hash* results.
 ///
-/// The body hasher canonicalises and hashes chunks of the message body, until
-/// all body hash requests can be answered.
+/// The body hasher canonicalizes and hashes chunks of the message body, until
+/// all body hash requests can be answered. The main benefits of the body hasher
+/// design are deduplication of the canonicalization and hashing effort, and
+/// shortcutting the computation when only part of the message body is of
+/// interest.
 pub struct BodyHasher {
     fail_on_truncate: bool,
     // For each registration/key, map to a hasher and a flag that records
@@ -138,6 +151,7 @@ pub struct BodyHasher {
 }
 
 impl BodyHasher {
+    /// Canonicalizes and hashes a chunk of the message body.
     pub fn hash_chunk(&mut self, chunk: &[u8]) -> BodyHasherStance {
         let mut canonicalized_chunk_simple = None;
         let mut canonicalized_chunk_relaxed = None;
@@ -175,6 +189,8 @@ impl BodyHasher {
         }
     }
 
+    /// Finalises any body hash calculations still in progress and returns the
+    /// results.
     pub fn finish(self) -> BodyHashResults {
         let mut finish_canonicalization_simple = Some(|| self.canonicalizer_simple.finish());
         let mut finish_canonicalization_relaxed = Some(|| self.canonicalizer_relaxed.finish());
@@ -219,9 +235,13 @@ impl BodyHasher {
 }
 
 /// An error that occurs when computing the *body hash*.
+///
+/// These errors can only occur when the *l=* tag is used.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum BodyHashError {
+    /// Less than the expected input data have been fed to the body hasher.
     InsufficientInput,
+    /// The input was only partially consumed by the body hasher.
     InputTruncated,
 }
 
@@ -236,7 +256,10 @@ impl Display for BodyHashError {
 
 impl Error for BodyHashError {}
 
-/// A result produced after body hashing.
+/// A result answering a body hash request.
+///
+/// The result contains the final body hash (digest) and the number of bytes
+/// digested.
 pub type BodyHashResult = Result<(Box<[u8]>, usize), BodyHashError>;
 
 /// Results produced by a body hasher.
@@ -246,6 +269,7 @@ pub struct BodyHashResults {
 }
 
 impl BodyHashResults {
+    /// Returns the result computed for a given body hash request.
     pub fn get(&self, key: &BodyHasherKey) -> Option<&BodyHashResult> {
         self.results.get(key)
     }

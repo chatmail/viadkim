@@ -69,6 +69,8 @@ pub struct CountingHasher {
 }
 
 impl CountingHasher {
+    /// Creates a new hasher that limits its input to at most `length` digested
+    /// bytes (no limit if `None`).
     pub fn new(alg: HashAlgorithm, length: Option<usize>) -> Self {
         let digest: Box<dyn digest::DynDigest + Send + Sync> = match alg {
             HashAlgorithm::Sha256 => Box::new(Sha256::default()),
@@ -83,6 +85,7 @@ impl CountingHasher {
         }
     }
 
+    /// Digests the input bytes.
     pub fn update(&mut self, bytes: &[u8]) -> HashStatus {
         match self.length {
             Some(len) => {
@@ -109,6 +112,12 @@ impl CountingHasher {
         }
     }
 
+    /// Produces the final digest and the number of bytes digested.
+    ///
+    /// # Errors
+    ///
+    /// If less than the initially declared `length` number of bytes have been
+    /// digested, an error is returned.
     pub fn finish(self) -> Result<(Box<[u8]>, usize), InsufficientInput> {
         if self.length.is_some() && !self.is_done() {
             return Err(InsufficientInput);
@@ -119,6 +128,7 @@ impl CountingHasher {
         Ok((bytes, self.bytes_written))
     }
 
+    /// Returns true if this hasher will digest no more bytes, false otherwise.
     pub fn is_done(&self) -> bool {
         matches!(self.length, Some(len) if len == self.bytes_written)
     }

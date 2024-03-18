@@ -133,6 +133,11 @@ enum CanonState {
 }
 
 /// A canonicalizer using the body canonicalization algorithm.
+///
+/// This canonicalizer can be used to canonicalize a message body in chunks,
+/// without the entire body needing to be in memory at once. For this, it keeps
+/// a small amount of state that must be finalized with a final call to
+/// [`BodyCanonicalizer::finish`].
 #[derive(Clone)]
 pub struct BodyCanonicalizer {
     kind: CanonicalizationAlgorithm,
@@ -142,6 +147,7 @@ pub struct BodyCanonicalizer {
 }
 
 impl BodyCanonicalizer {
+    /// Creates a new body canonicalizer.
     pub fn new(kind: CanonicalizationAlgorithm) -> Self {
         Self {
             kind,
@@ -153,6 +159,7 @@ impl BodyCanonicalizer {
 
     // Canonicalisation recognises only CRLF as line separator/terminator, stray
     // CR and LF are treated like other bytes.
+    /// Canonicalizes a chunk of message body content.
     pub fn canonicalize_chunk(&mut self, bytes: &[u8]) -> Vec<u8> {
         match self.kind {
             CanonicalizationAlgorithm::Simple => self.canon_chunk_simple(bytes),
@@ -300,6 +307,7 @@ impl BodyCanonicalizer {
         result
     }
 
+    /// Produces the final chunk of canonicalized message body content.
     pub fn finish(mut self) -> Vec<u8> {
         match self.kind {
             CanonicalizationAlgorithm::Simple => {

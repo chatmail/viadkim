@@ -92,20 +92,31 @@ impl fmt::Debug for SelectorFlag {
 /// processing.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DkimKeyRecordError {
-    /// Fundamental syntax errors such as DNS record format or invalid UTF-8
-    /// data in record.
+    /// Fundamental syntax errors such as DNS record format or invalid UTF-8.
     RecordFormat,
+    /// The tag list is syntactically invalid.
     TagListFormat,
+    /// *v=* is not the first tag.
     MisplacedVersionTag,
+    /// Incompatible DKIM key record version.
     IncompatibleVersion,
+    /// Invalid value in *h=*.
     InvalidHashAlgorithm,
+    /// No supported algorithms in *h=*.
     NoSupportedHashAlgorithms,
+    /// The key type in *k=* is not supported.
     UnsupportedKeyType,
+    /// Invalid Quoted-Printable in key record.
     InvalidQuotedPrintable,
+    /// Invalid Base64 in key record.
     InvalidBase64,
+    /// Invalid value in *s=*.
     InvalidServiceType,
+    /// No supported service types in *s=*.
     NoSupportedServiceTypes,
+    /// Invalid value in *t=*.
     InvalidFlag,
+    /// The *p=* tag is missing.
     MissingKeyTag,
 }
 
@@ -133,7 +144,9 @@ impl Error for DkimKeyRecordError {}
 
 /// A DKIM public key record.
 ///
-/// The *v=* tag (always 1) is not included.
+/// By design, the strongly typed members (`HashAlgorithm`, `ServiceType`, …)
+/// only encode known items, unrecognised items are ignored. The *v=* tag
+/// (always 1) is not included.
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct DkimKeyRecord {
     /// The *h=* tag.
@@ -153,10 +166,6 @@ pub struct DkimKeyRecord {
 }
 
 impl DkimKeyRecord {
-    // Implementation note: For struct members that have an enumerated type
-    // (like `HashAlgorithm` or `ServiceType`), unrecognised items are ignored
-    // and not part of the final parsed result.
-
     fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimKeyRecordError> {
         let mut hash_algorithms = None;
         let mut key_type = None;

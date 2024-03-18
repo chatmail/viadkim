@@ -31,8 +31,8 @@ use std::{future::Future, io};
 /// The inner, per-record `std::io::Error` can be used to signal errors
 /// (parsing, encoding) with individual TXT records.
 ///
-/// If **Cargo feature `hickory-resolver`** is enabled, an implementation of
-/// this trait for the Hickory DNS `TokioAsyncResolver` is provided.
+/// When **feature `hickory-resolver`** is enabled, an implementation of this
+/// trait for the Hickory DNS `TokioAsyncResolver` is provided.
 pub trait LookupTxt: Send + Sync {
     /// The answer consisting of TXT records found.
     type Answer: IntoIterator<Item = io::Result<Vec<u8>>>;

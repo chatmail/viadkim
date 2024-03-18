@@ -169,20 +169,34 @@ pub fn default_unsigned_headers() -> Vec<FieldName> {
 /// An error that occurs when preparing signing requests.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum RequestError {
-    /// Conversion from or to a requested integer data type cannot be supported
-    /// in this implementation or on the current platform.
+    /// Conversion from or to a requested integer data type is not supported in
+    /// this implementation or on the current platform.
     Overflow,
+    /// No *From* header in the message header.
     MissingFromHeader,
+    /// More requests for signing than acceptable.
     TooManyRequests,
+    /// No signing requests provided to the signing process.
     EmptyRequests,
+    /// The requested signing algorithm and the provided signing key are of
+    /// incompatible types.
     IncompatibleKeyType,
+    /// The *From* header is not included in the selection of headers to sign.
     FromHeaderNotSigned,
+    /// A header name included in the selection of headers to sign is
+    /// syntactically invalid.
     InvalidSignedFieldName,
+    /// The *i=* domain is not equal to or a subdomain of the *d=* domain.
     DomainMismatch,
+    /// The expiration (*x=*) duration is zero.
     ZeroExpirationDuration,
-    TimestampNotBeforeExpiration,
+    /// The *x=* timestamp is not after the *i=* timestamp.
+    ExpirationNotAfterTimestamp,
+    /// An extension tag is syntactically invalid.
     InvalidExtTags,
+    /// The requested *DKIM-Signature* header name is syntactically invalid.
     InvalidDkimSignatureHeaderName,
+    /// The requested indentation whitespace is syntactically invalid.
     InvalidIndentationWhitespace,
 }
 
@@ -198,7 +212,7 @@ impl Display for RequestError {
             Self::InvalidSignedFieldName => write!(f, "invalid signed header name"),
             Self::DomainMismatch => write!(f, "domain mismatch"),
             Self::ZeroExpirationDuration => write!(f, "zero expiration duration"),
-            Self::TimestampNotBeforeExpiration => write!(f, "timestamp not before expiration"),
+            Self::ExpirationNotAfterTimestamp => write!(f, "expiration not after timestamp"),
             Self::InvalidExtTags => write!(f, "invalid extension tags"),
             Self::InvalidDkimSignatureHeaderName => write!(f, "invalid DKIM-Signature header name"),
             Self::InvalidIndentationWhitespace => write!(f, "invalid indentation whitespace"),
@@ -283,7 +297,7 @@ pub struct SignRequest<T> {
     pub header_selection: HeaderSelection,
     /// The agent or user identifier to use in the *i=* tag.
     pub identity: Option<Identity>,
-    /// The strategy to use for generating the *l=* tag.
+    /// The length of the message body in the *l=* tag.
     pub body_length: BodyLength,
     /// The selector to use in the *s=* tag.
     pub selector: Selector,
@@ -403,11 +417,11 @@ fn validate_timestamps(timestamp: Timestamp, expiration: Expiration) -> Result<(
     // `*::Exact` will be respected, and will not produce invalid t=/x=.
     match (timestamp, expiration) {
         (Timestamp::Exact(t), Expiration::Exact(x)) if t >= x => {
-            return Err(RequestError::TimestampNotBeforeExpiration);
+            return Err(RequestError::ExpirationNotAfterTimestamp);
         }
         (Timestamp::Now, Expiration::Exact(0))
         | (Timestamp::Exact(u64::MAX), Expiration::After(_)) => {
-            return Err(RequestError::TimestampNotBeforeExpiration);
+            return Err(RequestError::ExpirationNotAfterTimestamp);
         }
         _ => {}
     }
@@ -418,10 +432,13 @@ fn validate_timestamps(timestamp: Timestamp, expiration: Expiration) -> Result<(
 /// An error that occurs when performing signing.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SigningError {
-    /// Conversion from or to a requested integer data type cannot be supported
-    /// in this implementation or on the current platform.
+    /// Conversion from or to a requested integer data type is not supported in
+    /// this implementation or on the current platform.
     Overflow,
+    /// Less than the number of bytes specified in *l=* were fed to the signing
+    /// process.
     InsufficientContent,
+    /// Failure to perform the cryptographic signing operation.
     SigningFailure,
 }
 
@@ -708,7 +725,7 @@ mod tests {
     fn validate_timestamps_ok() {
         use super::{
             Expiration as X,
-            RequestError::{TimestampNotBeforeExpiration as TNBE, ZeroExpirationDuration as ZED},
+            RequestError::{ExpirationNotAfterTimestamp as ENAT, ZeroExpirationDuration as ZED},
             Timestamp as T,
         };
 
@@ -722,11 +739,11 @@ mod tests {
         assert_eq!(validate_timestamps(T::Now, X::Never), Ok(()));
         assert_eq!(validate_timestamps(T::Now, X::After(secs(0))), Err(ZED));
         assert_eq!(validate_timestamps(T::Now, X::After(secs(3))), Ok(()));
-        assert_eq!(validate_timestamps(T::Now, X::Exact(0)), Err(TNBE));
+        assert_eq!(validate_timestamps(T::Now, X::Exact(0)), Err(ENAT));
         assert_eq!(validate_timestamps(T::Now, X::Exact(3)), Ok(()));
         assert_eq!(validate_timestamps(T::Exact(3), X::Never), Ok(()));
         assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(0))), Err(ZED));
         assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(3))), Ok(()));
-        assert_eq!(validate_timestamps(T::Exact(u64::MAX), X::After(secs(3))), Err(TNBE));
+        assert_eq!(validate_timestamps(T::Exact(u64::MAX), X::After(secs(3))), Err(ENAT));
     }
 }
