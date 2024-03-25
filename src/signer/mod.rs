@@ -260,9 +260,9 @@ impl Default for OutputFormat {
     }
 }
 
-struct ClosureDebug<'a>(&'a (dyn Fn(&str, &str) -> Ordering + Send + Sync));
+struct ClosureDebug;
 
-impl fmt::Debug for ClosureDebug<'_> {
+impl fmt::Debug for ClosureDebug {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "<closure>")
     }
@@ -274,7 +274,7 @@ impl fmt::Debug for OutputFormat {
             .field("header_name", &self.header_name)
             .field("line_width", &self.line_width)
             .field("indentation", &self.indentation)
-            .field("tag_order", &self.tag_order.as_deref().map(ClosureDebug))
+            .field("tag_order", &self.tag_order.as_ref().map(|_| ClosureDebug))
             .field("ascii_only", &self.ascii_only)
             .finish()
     }
