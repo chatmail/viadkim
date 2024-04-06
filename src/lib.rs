@@ -80,7 +80,7 @@ pub mod quoted_printable;
 pub mod record;
 pub mod signature;
 pub mod signer;
-mod tag_list;
+pub mod tag_list;
 mod util;
 pub mod verifier;
 

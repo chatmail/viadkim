@@ -17,9 +17,8 @@
 use crate::{
     crypto::{self, HashAlgorithm, VerifyingKey},
     header::HeaderFields,
-    message_hash,
+    message_hash, parse,
     signature::DkimSignature,
-    tag_list,
     verifier::VerificationError,
 };
 use std::{borrow::Cow, str};
@@ -51,9 +50,13 @@ pub fn perform_verification(
 }
 
 fn make_original_dkim_sig(value: &str) -> Cow<'_, str> {
-    fn b_tag_prefix_len(s: &str) -> Option<usize> {
-        let (rest, _) = tag_list::strip_tag_name_and_equals(s).filter(|(_, name)| *name == "b")?;
-        Some(s.len() - rest.len())
+    fn b_tag_prefix_len(val: &str) -> Option<usize> {
+        let (s, rest) = val.split_once('=')?;
+        if parse::trim_surrounding_fws(s) == "b" {
+            Some(val.len() - rest.len())
+        } else {
+            None
+        }
     }
 
     // First strip the b= tag value, only cloning the string if needed.
@@ -130,9 +133,20 @@ mod tests {
 
     #[test]
     fn make_original_dkim_sig_basic() {
-        assert_eq!(make_original_dkim_sig(" a = 1 ; b = 2 ; c = 3 "), " a = 1 ; b =; c = 3 ");
-        assert_eq!(make_original_dkim_sig(" a = 1 ; b = 2 ;"), " a = 1 ; b =;");
-        assert_eq!(make_original_dkim_sig(" a = 1 ; b = 2 "), " a = 1 ; b =");
-        assert_eq!(make_original_dkim_sig(" a = 1 ; b ="), " a = 1 ; b =");
+        let s = make_original_dkim_sig(" a = 1 ; b = 2 ; c = 3 ");
+        assert_eq!(s, " a = 1 ; b =; c = 3 ");
+        assert!(matches!(s, Cow::Owned(_)));
+
+        let s = make_original_dkim_sig(" a = 1 ; b = 2 ;");
+        assert_eq!(s, " a = 1 ; b =;");
+        assert!(matches!(s, Cow::Owned(_)));
+
+        let s = make_original_dkim_sig(" a = 1 ; b = 2 ");
+        assert_eq!(s, " a = 1 ; b =");
+        assert!(matches!(s, Cow::Borrowed(_)));
+
+        let s = make_original_dkim_sig(" a = 1 ; b =");
+        assert_eq!(s, " a = 1 ; b =");
+        assert!(matches!(s, Cow::Borrowed(_)));
     }
 }

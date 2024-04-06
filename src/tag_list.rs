@@ -14,27 +14,31 @@
 // You should have received a copy of the GNU General Public License along with
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! Tag=value lists. See RFC 6376, section 3.2.
+//! Tag=value lists.
+//!
+//! See RFC 6376, section 3.2. Note that this implementation supports any
+//! UTF-8-encoded tag values, in accordance with the informative implementation
+//! note in that section.
 
-use crate::{
-    header::FieldName,
-    parse::{rstrip_fws, strip_fws, strip_suffix},
-    quoted_printable, util,
-};
+use crate::parse::{strip_fws, strip_suffix};
 use std::{
     collections::HashSet,
     error::Error,
     fmt::{self, Display, Formatter},
     str,
+    vec::IntoIter,
 };
 
+/// An error that occurs when parsing a tag list.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum ParseTagListError {
+pub enum TagListError {
+    /// A tag name appears more than once.
     DuplicateTag,
+    /// The tag list is syntactically invalid.
     Syntax,
 }
 
-impl Display for ParseTagListError {
+impl Display for TagListError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::DuplicateTag => write!(f, "duplicate tag"),
@@ -43,17 +47,38 @@ impl Display for ParseTagListError {
     }
 }
 
-impl Error for ParseTagListError {}
+impl Error for TagListError {}
 
+/// A tag=value pair.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct TagSpec<'a> {
+    /// The tag name.
     pub name: &'a str,
+    /// The tag value.
     pub value: &'a str,
 }
 
-/// A list of well-formed tag=value pairs with unique tag names.
+/// A list of tag=value pairs with unique tag names.
+///
+/// This is a view type containing tags and values borrowed from a string.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct TagList<'a>(Vec<TagSpec<'a>>);
+
+impl<'a> TagList<'a> {
+    /// Parses a tag=value list from a string.
+    pub fn from_str(s: &'a str) -> Result<Self, TagListError> {
+        match strip_tag_list(s) {
+            Some(("", tag_list)) => {
+                let mut names_seen = HashSet::new();
+                if tag_list.iter().any(|tag| !names_seen.insert(tag.name)) {
+                    return Err(TagListError::DuplicateTag);
+                }
+                Ok(Self(tag_list))
+            }
+            _ => Err(TagListError::Syntax),
+        }
+    }
+}
 
 impl<'a> AsRef<[TagSpec<'a>]> for TagList<'a> {
     fn as_ref(&self) -> &[TagSpec<'a>] {
@@ -61,18 +86,18 @@ impl<'a> AsRef<[TagSpec<'a>]> for TagList<'a> {
     }
 }
 
-impl<'a> TagList<'a> {
-    pub fn from_str(s: &'a str) -> Result<Self, ParseTagListError> {
-        match strip_tag_list(s) {
-            Some(("", tag_list)) => {
-                let mut names_seen = HashSet::new();
-                if tag_list.iter().any(|tag| !names_seen.insert(tag.name)) {
-                    return Err(ParseTagListError::DuplicateTag);
-                }
-                Ok(Self(tag_list))
-            }
-            _ => Err(ParseTagListError::Syntax),
-        }
+impl<'a> From<TagList<'a>> for Vec<TagSpec<'a>> {
+    fn from(tag_list: TagList<'a>) -> Self {
+        tag_list.0
+    }
+}
+
+impl<'a> IntoIterator for TagList<'a> {
+    type Item = TagSpec<'a>;
+    type IntoIter = IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -92,7 +117,13 @@ fn strip_tag_list(val: &str) -> Option<(&str, Vec<TagSpec<'_>>)> {
 }
 
 fn strip_tag_spec(val: &str) -> Option<(&str, TagSpec<'_>)> {
-    let (s, name) = strip_tag_name_and_equals(val)?;
+    let s = strip_fws(val).unwrap_or(val);
+
+    let (s, name) = strip_tag_name(s)?;
+
+    let s = strip_fws(s).unwrap_or(s);
+
+    let s = s.strip_prefix('=')?;
 
     let s = strip_fws(s).unwrap_or(s);
 
@@ -105,19 +136,6 @@ fn strip_tag_spec(val: &str) -> Option<(&str, TagSpec<'_>)> {
     };
 
     Some((s, TagSpec { name, value }))
-}
-
-/// Strips a tag name including the equals sign, ie everything before a value.
-pub fn strip_tag_name_and_equals(val: &str) -> Option<(&str, &str)> {
-    let s = strip_fws(val).unwrap_or(val);
-
-    let (s, name) = strip_tag_name(s)?;
-
-    let s = strip_fws(s).unwrap_or(s);
-
-    let s = s.strip_prefix('=')?;
-
-    Some((s, name))
 }
 
 fn strip_tag_name(value: &str) -> Option<(&str, &str)> {
@@ -156,72 +174,14 @@ fn is_tval_char(c: char) -> bool {
     matches!(c, '!'..=':' | '<'..='~') || !c.is_ascii()
 }
 
-pub fn parse_colon_separated_value(value: &str) -> Vec<&str> {
-    debug_assert!(is_tag_value(value));
-
-    value.split(':').map(trim_surrounding_fws).collect()
-}
-
-pub fn parse_base64_value(value: &str) -> Result<Vec<u8>, ParseTagListError> {
-    debug_assert!(is_tag_value(value));
-
-    // A tag value contains only well-formed FWS, so may strip indiscriminately:
-    let value: String = value
-        .chars()
-        .filter(|c| !matches!(c, ' ' | '\t' | '\r' | '\n'))
-        .collect();
-
-    util::decode_base64(&value).map_err(|_| ParseTagListError::Syntax)
-}
-
-pub fn parse_qp_section_value(value: &str) -> Result<Vec<u8>, ParseTagListError> {
-    debug_assert!(is_tag_value(value));
-
-    quoted_printable::decode_qp_section(value).map_err(|_| ParseTagListError::Syntax)
-}
-
-pub fn parse_quoted_printable_value(value: &str) -> Result<Vec<u8>, ParseTagListError> {
-    debug_assert!(is_tag_value(value));
-
-    quoted_printable::decode(value).map_err(|_| ParseTagListError::Syntax)
-}
-
-pub fn parse_quoted_printable_header_field(
-    value: &str,
-) -> Result<(FieldName, Box<[u8]>), ParseTagListError> {
-    // Unlike other functions here, value may be surrounded with FWS.
-    debug_assert!(is_tag_value(trim_surrounding_fws(value)));
-
-    // This enforces well-formedness requirement for header field names, but not
-    // for the qp-encoded value, which can be anything (it should of course
-    // conform to `FieldBody`, but since it is foreign data we cannot assume).
-
-    let val = quoted_printable::decode(value).map_err(|_| ParseTagListError::Syntax)?;
-
-    let mut iter = val.splitn(2, |&c| c == b':');
-
-    match (iter.next(), iter.next()) {
-        (Some(name), Some(value)) => {
-            let name = str::from_utf8(name).map_err(|_| ParseTagListError::Syntax)?;
-            let name = FieldName::new(name).map_err(|_| ParseTagListError::Syntax)?;
-            let value = value.into();
-            Ok((name, value))
-        }
-        _ => Err(ParseTagListError::Syntax),
-    }
-}
-
+/// Returns true if the string is a valid tag name, false otherwise.
 pub fn is_tag_name(s: &str) -> bool {
-    matches!(strip_tag_name(s), Some((rest, _)) if rest.is_empty())
+    matches!(strip_tag_name(s), Some(("", _)))
 }
 
+/// Returns true if the string is a valid tag value, false otherwise.
 pub fn is_tag_value(s: &str) -> bool {
-    s.is_empty() || matches!(strip_tag_value(s), Some((rest, _)) if rest.is_empty())
-}
-
-fn trim_surrounding_fws(s: &str) -> &str {
-    let s = strip_fws(s).unwrap_or(s);
-    rstrip_fws(s).unwrap_or(s)
+    s.is_empty() || matches!(strip_tag_value(s), Some(("", _)))
 }
 
 #[cfg(test)]
@@ -244,35 +204,5 @@ mod tests {
         let tag_list = TagList::from_str(&example).unwrap();
 
         assert!(!tag_list.as_ref().is_empty());
-    }
-
-    #[test]
-    fn parse_colon_separated_value_ok() {
-        assert_eq!(
-            parse_colon_separated_value("ab:\r\n\tc\r\n\td\r\n\t:e"),
-            ["ab", "c\r\n\td", "e"]
-        );
-        assert_eq!(parse_colon_separated_value(""), [""]);
-    }
-
-    #[test]
-    fn parse_base64_value_ok() {
-        assert_eq!(parse_base64_value("").unwrap(), []);
-        assert_eq!(parse_base64_value("TQ==").unwrap(), b"M");
-    }
-
-    #[test]
-    fn parse_quoted_printable_header_field_ok() {
-        let example = " Date:=20July=205,=0D=0A=092005=20\r\n\t3:44:08=20PM=20-0700 ";
-
-        let result = parse_quoted_printable_header_field(example);
-
-        assert_eq!(
-            result,
-            Ok((
-                FieldName::new("Date").unwrap(),
-                Box::from(*b" July 5,\r\n\t2005 3:44:08 PM -0700"),
-            ))
-        );
     }
 }

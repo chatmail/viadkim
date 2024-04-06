@@ -18,7 +18,8 @@
 
 use crate::{
     crypto::{HashAlgorithm, KeyType},
-    tag_list::{self, TagList, TagSpec},
+    parse, quoted_printable,
+    tag_list::{TagList, TagSpec},
     util::{Base64Debug, CanonicalStr},
 };
 use std::{
@@ -166,7 +167,8 @@ pub struct DkimKeyRecord {
 }
 
 impl DkimKeyRecord {
-    fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimKeyRecordError> {
+    /// Parses a DKIM public key record from a tag list.
+    pub fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimKeyRecordError> {
         let mut hash_algorithms = None;
         let mut key_type = None;
         let mut notes = None;
@@ -188,7 +190,7 @@ impl DkimKeyRecord {
                 "h" => {
                     let mut algs = vec![];
 
-                    for s in tag_list::parse_colon_separated_value(value) {
+                    for s in parse::parse_colon_separated_tvalue(value) {
                         if s.is_empty() {
                             return Err(DkimKeyRecordError::InvalidHashAlgorithm);
                         }
@@ -219,7 +221,7 @@ impl DkimKeyRecord {
                     }
                 }
                 "n" => {
-                    let s = tag_list::parse_qp_section_value(value)
+                    let s = quoted_printable::decode_qp_section(value)
                         .map_err(|_| DkimKeyRecordError::InvalidQuotedPrintable)?;
 
                     // §3.6.1: ‘Notes that might be of interest to a human’. It
@@ -230,7 +232,7 @@ impl DkimKeyRecord {
                     notes = Some(value.into());
                 }
                 "p" => {
-                    let s = tag_list::parse_base64_value(value)
+                    let s = parse::parse_base64_tvalue(value)
                         .map_err(|_| DkimKeyRecordError::InvalidBase64)?;
 
                     key_data = Some(s.into());
@@ -238,7 +240,7 @@ impl DkimKeyRecord {
                 "s" => {
                     let mut st = vec![];
 
-                    for s in tag_list::parse_colon_separated_value(value) {
+                    for s in parse::parse_colon_separated_tvalue(value) {
                         if s.is_empty() {
                             return Err(DkimKeyRecordError::InvalidServiceType);
                         }
@@ -259,7 +261,7 @@ impl DkimKeyRecord {
                 "t" => {
                     let mut fs = vec![];
 
-                    for s in tag_list::parse_colon_separated_value(value) {
+                    for s in parse::parse_colon_separated_tvalue(value) {
                         if s.is_empty() {
                             return Err(DkimKeyRecordError::InvalidFlag);
                         }

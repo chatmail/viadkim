@@ -19,9 +19,12 @@ minimum supported Rust version being considered breaking changes.
 
 ### Added
 
+* The new module [`tag_list`] adds basic support for working with RFC 6376
+  *tag=value lists*.
 * Missing API documentation has been filled in.
 
 [`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.1/viadkim/signer/enum.Expiration.html
+[`tag_list`]: https://docs.rs/viadkim/0.2.0-alpha.1/viadkim/tag_list/index.html
 
 ## 0.1.0 (2023-11-24)
 

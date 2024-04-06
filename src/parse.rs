@@ -16,6 +16,8 @@
 
 //! Common parsing utilities.
 
+use crate::util::{self, Base64Error};
+
 pub fn strip_suffix<'a>(s: &'a str, suffix: &str) -> &'a str {
     debug_assert!(s.ends_with(suffix));
     &s[..(s.len() - suffix.len())]
@@ -46,6 +48,11 @@ pub fn rstrip_fws(input: &str) -> Option<&str> {
     }
 }
 
+pub fn trim_surrounding_fws(s: &str) -> &str {
+    let s = strip_fws(s).unwrap_or(s);
+    rstrip_fws(s).unwrap_or(s)
+}
+
 // RFC 5234, appendix B.1
 
 fn strip_wsp(input: &str) -> Option<&str> {
@@ -62,6 +69,22 @@ fn rstrip_wsp(input: &str) -> Option<&str> {
 
 pub fn is_wsp(c: char) -> bool {
     matches!(c, ' ' | '\t')
+}
+
+// Helpers for parsing tag lists
+
+pub fn parse_colon_separated_tvalue(value: &str) -> impl Iterator<Item = &str> {
+    value.split(':').map(trim_surrounding_fws)
+}
+
+pub fn parse_base64_tvalue(value: &str) -> Result<Vec<u8>, Base64Error> {
+    // A tag value contains only well-formed FWS, so may strip indiscriminately:
+    let value: String = value
+        .chars()
+        .filter(|c| !matches!(c, ' ' | '\t' | '\r' | '\n'))
+        .collect();
+
+    util::decode_base64(&value)
 }
 
 #[cfg(test)]
@@ -90,5 +113,22 @@ mod tests {
         assert_eq!(rstrip_fws("\r\n"), None);
         assert_eq!(rstrip_fws("x\r\n "), Some("x"));
         assert_eq!(rstrip_fws("x \r\n "), Some("x"));
+    }
+
+    #[test]
+    fn parse_colon_separated_tvalue_ok() {
+        let parse_tval = |value| parse_colon_separated_tvalue(value).collect::<Vec<_>>();
+
+        assert_eq!(
+            parse_tval("ab:\r\n\tc\r\n\td\r\n\t:e"),
+            ["ab", "c\r\n\td", "e"]
+        );
+        assert_eq!(parse_tval(""), [""]);
+    }
+
+    #[test]
+    fn parse_base64_tvalue_ok() {
+        assert_eq!(parse_base64_tvalue("").unwrap(), []);
+        assert_eq!(parse_base64_tvalue("TQ==").unwrap(), b"M");
     }
 }

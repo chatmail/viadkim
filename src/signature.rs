@@ -19,7 +19,8 @@
 use crate::{
     crypto::{HashAlgorithm, KeyType},
     header::FieldName,
-    tag_list::{self, TagList, TagSpec},
+    parse, quoted_printable,
+    tag_list::{TagList, TagSpec},
     util::{Base64Debug, BytesDebug, CanonicalStr},
 };
 use std::{
@@ -868,7 +869,8 @@ pub struct DkimSignature {
 }
 
 impl DkimSignature {
-    fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimSignatureError> {
+    /// Parses a DKIM signature from a tag list.
+    pub fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimSignatureError> {
         Self::from_tag_list_internal(tag_list).map_err(|kind| {
             // The error path. Extract some data in raw form.
 
@@ -939,7 +941,7 @@ impl DkimSignature {
                     algorithm = Some(value);
                 }
                 "b" => {
-                    let value = tag_list::parse_base64_value(value)
+                    let value = parse::parse_base64_tvalue(value)
                         .map_err(|_| DkimSignatureErrorKind::InvalidBase64)?;
 
                     if value.is_empty() {
@@ -949,7 +951,7 @@ impl DkimSignature {
                     signature_data = Some(value.into());
                 }
                 "bh" => {
-                    let value = tag_list::parse_base64_value(value)
+                    let value = parse::parse_base64_tvalue(value)
                         .map_err(|_| DkimSignatureErrorKind::InvalidBase64)?;
 
                     if value.is_empty() {
@@ -977,7 +979,7 @@ impl DkimSignature {
 
                     let mut sh = vec![];
 
-                    for s in tag_list::parse_colon_separated_value(value) {
+                    for s in parse::parse_colon_separated_tvalue(value) {
                         let name = FieldName::new(s)
                             .map_err(|_| DkimSignatureErrorKind::InvalidSignedHeaderName)?;
                         sh.push(name);
@@ -990,7 +992,7 @@ impl DkimSignature {
                     signed_headers = Some(sh.into());
                 }
                 "i" => {
-                    let value = tag_list::parse_quoted_printable_value(value)
+                    let value = quoted_printable::decode(value)
                         .map_err(|_| DkimSignatureErrorKind::InvalidIdentity)?;
 
                     // This identifier is expected to contain UTF-8 only.
@@ -1017,7 +1019,7 @@ impl DkimSignature {
 
                     let mut dns_txt_seen = false;
 
-                    for s in tag_list::parse_colon_separated_value(value) {
+                    for s in parse::parse_colon_separated_tvalue(value) {
                         if s.is_empty() {
                             return Err(DkimSignatureErrorKind::InvalidQueryMethod);
                         }
@@ -1052,9 +1054,8 @@ impl DkimSignature {
                     let mut headers = vec![];
 
                     for piece in value.split('|') {
-                        let (name, value) = tag_list::parse_quoted_printable_header_field(piece)
-                            .map_err(|_| DkimSignatureErrorKind::InvalidCopiedHeaderField)?;
-                        headers.push((name, value));
+                        let header = parse_copied_header_field(piece)?;
+                        headers.push(header);
                     }
 
                     copied_headers = Some(headers.into());
@@ -1107,6 +1108,30 @@ impl DkimSignature {
             copied_headers,
             ext_tags,
         })
+    }
+}
+
+fn parse_copied_header_field(
+    value: &str,
+) -> Result<(FieldName, Box<[u8]>), DkimSignatureErrorKind> {
+    use DkimSignatureErrorKind::InvalidCopiedHeaderField;
+
+    // This enforces the well-formedness requirement for header field names, but
+    // not for the qp-encoded value, which can be anything (it should of course
+    // conform to `FieldBody`, but since it is foreign data we cannot assume).
+
+    let val = quoted_printable::decode(value).map_err(|_| InvalidCopiedHeaderField)?;
+
+    let mut iter = val.splitn(2, |&c| c == b':');
+
+    match (iter.next(), iter.next()) {
+        (Some(name), Some(value)) => {
+            let name = str::from_utf8(name).map_err(|_| InvalidCopiedHeaderField)?;
+            let name = FieldName::new(name).map_err(|_| InvalidCopiedHeaderField)?;
+            let value = value.into();
+            Ok((name, value))
+        }
+        _ => Err(InvalidCopiedHeaderField),
     }
 }
 
@@ -1367,6 +1392,21 @@ mod tests {
                 ]
                 .into(),
             }
+        );
+    }
+
+    #[test]
+    fn parse_copied_header_field_ok() {
+        let example = " Date:=20July=205,=0D=0A=092005=20\r\n\t3:44:08=20PM=20-0700 ";
+
+        let result = parse_copied_header_field(example);
+
+        assert_eq!(
+            result,
+            Ok((
+                FieldName::new("Date").unwrap(),
+                Box::from(*b" July 5,\r\n\t2005 3:44:08 PM -0700"),
+            ))
         );
     }
 }
