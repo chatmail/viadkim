@@ -168,7 +168,7 @@ impl BodyCanonicalizer {
     }
 
     fn canon_chunk_simple(&mut self, bytes: &[u8]) -> Vec<u8> {
-        let mut result = vec![];
+        let mut result = Vec::with_capacity(bytes.len());
 
         for &b in bytes {
             match self.state {
@@ -220,7 +220,7 @@ impl BodyCanonicalizer {
             matches!(b, b'\t' | b' ')
         }
 
-        let mut result = vec![];
+        let mut result = Vec::with_capacity(bytes.len());
 
         for &b in bytes {
             match self.state {
