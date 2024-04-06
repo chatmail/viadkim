@@ -269,6 +269,14 @@ pub enum VerifyingKey {
 }
 
 impl VerifyingKey {
+    /// Returns this key’s key type.
+    pub fn key_type(&self) -> KeyType {
+        match self {
+            Self::Rsa(_) => KeyType::Rsa,
+            Self::Ed25519(_) => KeyType::Ed25519,
+        }
+    }
+
     /// Returns this key’s size in bits, if available.
     ///
     /// Currently only the RSA verifying key provides a key size.

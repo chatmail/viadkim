@@ -19,6 +19,7 @@ minimum supported Rust version being considered breaking changes.
 
 ### Added
 
+* New method `VerifyingKey::key_type` returns the key type of a verifying key.
 * The new module [`tag_list`] adds basic support for working with RFC 6376
   *tag=value lists*.
 * Missing API documentation has been filled in.
