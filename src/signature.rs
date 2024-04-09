@@ -610,9 +610,9 @@ impl FromStr for CanonicalizationAlgorithm {
 /// ```
 /// use viadkim::signature::{Canonicalization, CanonicalizationAlgorithm::*};
 ///
-/// let canon = Canonicalization::from((Relaxed, Simple));
+/// let c = Canonicalization::from((Relaxed, Simple));
 ///
-/// assert_eq!(canon.to_string(), "relaxed/simple");
+/// assert_eq!(c.to_string(), "relaxed/simple");
 /// ```
 #[derive(Clone, Copy, Default, Eq, Hash, PartialEq)]
 pub struct Canonicalization {

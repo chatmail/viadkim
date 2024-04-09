@@ -66,6 +66,10 @@ pub struct TagList<'a>(Vec<TagSpec<'a>>);
 
 impl<'a> TagList<'a> {
     /// Parses a tag=value list from a string.
+    ///
+    /// # Errors
+    ///
+    /// If the string is not a valid tag list, an error is returned.
     pub fn from_str(s: &'a str) -> Result<Self, TagListError> {
         match strip_tag_list(s) {
             Some(("", tag_list)) => {
