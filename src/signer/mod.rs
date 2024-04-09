@@ -15,6 +15,9 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Signer and supporting types.
+//!
+//! The main API items are [`Signer`] and convenience function
+//! [`sign`][`sign()`].
 
 mod format;
 mod sign;
@@ -166,7 +169,7 @@ pub fn default_unsigned_headers() -> Vec<FieldName> {
         .collect()
 }
 
-/// An error that occurs when preparing signing requests.
+/// An error that occurs when setting up a signer or signing request.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum RequestError {
     /// Conversion from or to a requested integer data type is not supported in
@@ -429,6 +432,9 @@ fn validate_timestamps(timestamp: Timestamp, expiration: Expiration) -> Result<(
     Ok(())
 }
 
+/// A result type for the signing outcome.
+pub type SigningResult = Result<SigningOutput, SigningError>;
+
 /// An error that occurs when performing signing.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SigningError {
@@ -519,12 +525,15 @@ struct SignerTask<T> {
 ///    requests together with the message header allow construction of a signer
 /// 2. [`process_body_chunk`][Signer::process_body_chunk]: then, any number of
 ///    chunks of the message body are fed to the signing process
-/// 3. **[`sign`][Signer::sign]** (async): finally, the initial signing requests
-///    are answered by performing signing and returning the results; this is
-///    where most of the actual work is done
+/// 3. **[`sign`][Signer::sign()]** (async): finally, the initial signing
+///    requests are answered by performing signing and returning the results;
+///    this is where most of the actual work is done
 ///
 /// Compare this with the similar but distinct procedure of
 /// [`Verifier`][crate::verifier::Verifier].
+///
+/// For convenience, the free function [`sign`][`sign()`] can be used to perform
+/// all stages in one go.
 ///
 /// # Examples
 ///
@@ -671,7 +680,7 @@ where
     /// Performs the actual signing and returns the resulting signatures.
     ///
     /// The returned result vector is never empty.
-    pub async fn sign(self) -> Vec<Result<SigningOutput, SigningError>> {
+    pub async fn sign(self) -> Vec<SigningResult> {
         let body_hash_results = self.body_hasher.finish();
 
         let mut result = vec![];
@@ -687,6 +696,34 @@ where
 
         result
     }
+}
+
+/// Produces the requested DKIM signatures for an email message.
+///
+/// This is a convenience function around a common usage pattern of [`Signer`],
+/// when the whole message body is available as a byte slice. Use `Signer` to
+/// process the message body in chunks instead.
+///
+/// See the example for `Signer` for basic usage.
+///
+/// # Errors
+///
+/// If the given arguments including any of the requests cannot be used for
+/// signing, an error is returned.
+pub async fn sign<I, T>(
+    header: HeaderFields,
+    body: &[u8],
+    requests: I,
+) -> Result<Vec<SigningResult>, RequestError>
+where
+    I: IntoIterator<Item = SignRequest<T>>,
+    T: AsRef<SigningKey>,
+{
+    let mut signer = Signer::prepare_signing(header, requests)?;
+
+    let _ = signer.process_body_chunk(body);
+
+    Ok(signer.sign().await)
 }
 
 #[cfg(test)]

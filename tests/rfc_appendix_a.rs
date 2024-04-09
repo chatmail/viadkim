@@ -20,7 +20,7 @@ async fn rfc_appendix_a_rsa() {
 
     let body = make_body();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -38,7 +38,7 @@ async fn rfc_appendix_a_spki() {
 
     let body = make_body();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -74,7 +74,7 @@ async fn sign_roundtrip() {
 
     req.header_selection = HeaderSelection::Manual(signed_headers.cloned().collect());
 
-    let sigs = common::sign(headers, &body, [req]).await;
+    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
 
     let sign_result = sigs.into_iter().next().unwrap().unwrap();
 
@@ -83,7 +83,7 @@ async fn sign_roundtrip() {
 
     let headers = common::prepend_header_field(sign_result.to_header_field(), make_header_fields());
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 

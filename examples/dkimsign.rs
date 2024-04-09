@@ -4,8 +4,8 @@ use tokio::{
     io::{self, AsyncReadExt},
 };
 use viadkim::{
-    crypto::HashAlgorithm, signer::Expiration, DomainName, Selector, SignRequest, Signer,
-    SigningAlgorithm, SigningKey, SigningOutput,
+    crypto::HashAlgorithm, signer::Expiration, DomainName, Selector, SignRequest, SigningAlgorithm,
+    SigningKey, SigningOutput,
 };
 
 #[tokio::main]
@@ -46,7 +46,7 @@ async fn main() {
     //
     // request.copy_headers = true;
     // request.body_length = viadkim::signer::BodyLength::MessageContent;
-    // request.identity = Some(viadkim::signature::Identity::new("\"abc|;привет\"@中文.gluet.ch").unwrap());
+    // request.identity = Some(viadkim::signature::Identity::new("\"abc|;привет\"@中文.example.com").unwrap());
     // request.algorithm = SigningAlgorithm::RsaSha1;
     // request.format.tag_order = Some(Box::new(|a, b| a.cmp(b)));
     // request.format.line_width = 64.try_into().unwrap();
@@ -65,13 +65,10 @@ async fn main() {
 
     let (header, body) = msg.split_once("\r\n\r\n").unwrap();
 
-    let headers = header.parse().unwrap();
+    let header = header.parse().unwrap();
+    let body = body.as_bytes();
 
-    let mut signer = Signer::prepare_signing(headers, [request]).unwrap();
-
-    let _ = signer.process_body_chunk(body.as_bytes());
-
-    let sigs = signer.sign().await;
+    let sigs = viadkim::sign(header, body, [request]).await.unwrap();
 
     for sig in sigs {
         match sig {

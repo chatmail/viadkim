@@ -32,7 +32,7 @@ async fn basic_sign() {
     request.format.indentation = "  ".into();
     request.format.tag_order = Some(Box::new(Ord::cmp));
 
-    let sigs = common::sign(headers, &body, [request]).await;
+    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
 
     assert_eq!(sigs.len(), 1);
 

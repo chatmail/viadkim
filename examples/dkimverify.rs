@@ -1,7 +1,7 @@
 use hickory_resolver::TokioAsyncResolver;
 use std::{env, process};
 use tokio::io::{self, AsyncReadExt};
-use viadkim::{Config, Verifier};
+use viadkim::Config;
 
 #[tokio::main]
 async fn main() {
@@ -28,7 +28,8 @@ async fn main() {
 
     let (header, body) = msg.split_once("\r\n\r\n").unwrap();
 
-    let headers = header.parse().unwrap();
+    let header = header.parse().unwrap();
+    let body = body.as_bytes();
 
     let resolver = TokioAsyncResolver::tokio(Default::default(), Default::default());
 
@@ -44,13 +45,7 @@ async fn main() {
         ..Default::default()
     };
 
-    let mut verifier = Verifier::verify_header(&resolver, &headers, &config)
-        .await
-        .unwrap();
-
-    let _ = verifier.process_body_chunk(body.as_bytes());
-
-    let sigs = verifier.finish();
+    let sigs = viadkim::verify(&resolver, &header, body, &config).await;
 
     for (i, sig) in sigs.into_iter().enumerate() {
         println!();

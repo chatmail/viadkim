@@ -31,7 +31,7 @@ async fn key_512_basic() {
         signing_key,
     );
 
-    let sigs = common::sign(headers, &body, [request]).await;
+    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -52,7 +52,7 @@ async fn key_512_basic() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -66,7 +66,7 @@ async fn key_512_basic() {
         ..Default::default()
     };
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -93,7 +93,7 @@ async fn key_512_basic() {
         signing_key,
     );
 
-    let sigs = common::sign(headers, &body, [request]).await;
+    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -114,7 +114,7 @@ async fn key_512_basic() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -146,7 +146,7 @@ async fn sha1_basic() {
         signing_key,
     );
 
-    let sigs = common::sign(headers, &body, [request]).await;
+    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -167,7 +167,7 @@ async fn sha1_basic() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -181,7 +181,7 @@ async fn sha1_basic() {
         ..Default::default()
     };
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -224,7 +224,7 @@ async fn sha1_basic() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 

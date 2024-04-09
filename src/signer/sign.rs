@@ -22,7 +22,7 @@ use crate::{
         self,
         format::{self, UnsignedDkimSignature},
         BodyLength, Expiration, HeaderSelection, OutputFormat, SignRequest, SigningError,
-        SigningOutput, Timestamp,
+        SigningOutput, SigningResult, Timestamp,
     },
 };
 use std::{collections::HashSet, time::SystemTime};
@@ -32,7 +32,7 @@ pub async fn perform_signing<T>(
     request: SignRequest<T>,
     headers: &HeaderFields,
     body_hash_results: &BodyHashResults,
-) -> Result<SigningOutput, SigningError>
+) -> SigningResult
 where
     T: AsRef<SigningKey>,
 {
@@ -139,7 +139,7 @@ async fn produce_signature(
     signing_key: &SigningKey,
     format: &OutputFormat,
     headers: &HeaderFields,
-) -> Result<SigningOutput, SigningError> {
+) -> SigningResult {
     let b_len = estimate_b_tag_length(signing_key);
 
     let (mut formatted_header_value, insertion_index) = sig.format_without_signature(format, b_len);

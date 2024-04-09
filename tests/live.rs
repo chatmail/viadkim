@@ -22,7 +22,7 @@ async fn live_verify() {
         ..Default::default()
     };
 
-    let sigs = common::verify(&resolver, &headers, body.as_bytes(), &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, body.as_bytes(), &config).await;
 
     assert_eq!(sigs.len(), 2);
 

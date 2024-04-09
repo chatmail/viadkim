@@ -15,6 +15,9 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Verifier and supporting types.
+//!
+//! The main API items are [`Verifier`] and convenience function
+//! [`verify`][`verify()`].
 
 mod header;
 mod lookup;
@@ -534,6 +537,9 @@ struct VerifierTask {
 /// Compare this with the similar but distinct procedure of
 /// [`Signer`][crate::signer::Signer].
 ///
+/// For convenience, the free function [`verify`][`verify()`] can be used to
+/// perform all stages in one go.
+///
 /// # Examples
 ///
 /// The following example shows how to verify a message’s signatures using the
@@ -755,4 +761,32 @@ fn verify_body_hash(
             VerificationStatus::Failure(VerificationError::Policy(PolicyError::UnsignedContent))
         }
     }
+}
+
+/// Verifies the DKIM signatures in an email message.
+///
+/// This is a convenience function around a common usage pattern of
+/// [`Verifier`], when the whole message body is available as a byte slice. Use
+/// `Verifier` to process the message body in chunks, which allows shortcutting
+/// unnecessary body processing. Unlike in `Verifier::finish`, the returned
+/// vector is empty if the header contains no signatures.
+///
+/// See the example for `Verifier` for basic usage.
+pub async fn verify<T>(
+    resolver: &T,
+    header: &HeaderFields,
+    body: &[u8],
+    config: &Config,
+) -> Vec<VerificationResult>
+where
+    T: LookupTxt + Clone + 'static,
+{
+    let mut verifier = match Verifier::verify_header(resolver, header, config).await {
+        Some(verifier) => verifier,
+        None => return vec![],
+    };
+
+    let _ = verifier.process_body_chunk(body);
+
+    verifier.finish()
 }

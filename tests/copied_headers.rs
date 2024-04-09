@@ -49,7 +49,7 @@ async fn copied_headers_ok() {
     ]);
     req.copy_headers = true;
 
-    let sigs = common::sign(headers, &body, [req]).await;
+    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -66,7 +66,7 @@ async fn copied_headers_ok() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -83,7 +83,7 @@ async fn copied_headers_ok() {
         .map(|(name, value)| (name.clone(), FieldBody::new(&value[..]).unwrap()));
     let headers = common::prepend_header_field(sig.to_header_field(), rest);
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 

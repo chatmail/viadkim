@@ -104,7 +104,7 @@ async fn low_level_sign() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -135,7 +135,7 @@ async fn low_level_verify() {
         FieldName::new("To").unwrap(),
     ]);
 
-    let sigs = common::sign(headers, &body, [req]).await;
+    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 

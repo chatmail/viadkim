@@ -21,9 +21,9 @@
 //! well as low-level APIs that cover the various DKIM protocol areas.
 //!
 //! The high-level API can be used to sign email messages using DKIM signatures
-//! (module `signer`), and to verify such signatures (module `verifier`). Most
-//! users will want to deal with DKIM via these APIs. For convenience, the most
-//! relevant items are re-exported at the top level.
+//! (module [`signer`]), and to verify such signatures (module [`verifier`]).
+//! Most users will want to deal with DKIM via these APIs. For convenience, the
+//! most relevant items are re-exported at the top level.
 //!
 //! The high-level API exposes various configuration options for both the
 //! signing and verification process. It is, however, closed, and not
@@ -88,9 +88,10 @@ pub use crate::{
     crypto::SigningKey,
     header::{FieldBody, FieldName, HeaderField, HeaderFields},
     signature::{DomainName, Selector, SigningAlgorithm},
-    signer::{RequestError, SignRequest, Signer, SigningError, SigningOutput},
+    signer::{sign, RequestError, SignRequest, Signer, SigningError, SigningOutput, SigningResult},
     util::{decode_base64, encode_base64, Base64Error, CanonicalStr},
     verifier::{
-        Config, DkimResult, VerificationError, VerificationResult, VerificationStatus, Verifier,
+        verify, Config, DkimResult, VerificationError, VerificationResult, VerificationStatus,
+        Verifier,
     },
 };

@@ -7,7 +7,7 @@ This library provides both high-level APIs for signing and verifying email
 messages, as well as the low-level APIs used to implement this functionality. It
 is an asynchronous library based on the [Tokio] async runtime.
 
-This library is developed independently from scratch by following the RFC
+This library was developed independently from scratch by following the RFC
 specification and related documents. The design objectives sketched below are
 used to guide development.
 
@@ -69,7 +69,7 @@ message, and one for verifying a message’s signatures.
 The program **`dkimsign`** produces a DKIM signature for the message provided on
 standard input. It takes three arguments: a path to a key file containing a
 signing key in PKCS#8 PEM format, a domain (the *d=* tag), and a selector (the
-*s=* tag). It then prints a DKIM-Signature header that can be prepended to the
+*s=* tag). It then prints a *DKIM-Signature* header that can be prepended to the
 message.
 
 Example invocation:
@@ -80,8 +80,7 @@ cargo run --example dkimsign -- \
 ```
 
 The program **`dkimverify`** verifies the DKIM signatures of a message provided
-on standard input. It prints each verification result with signature as Rust
-data structures.
+on standard input. It prints each verification result as Rust data structures.
 
 Example invocation:
 

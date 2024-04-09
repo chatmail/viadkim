@@ -37,7 +37,7 @@ async fn basic_verify() {
         signing_key,
     );
 
-    let sigs = common::sign(headers, &body, [req]).await;
+    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -45,7 +45,7 @@ async fn basic_verify() {
 
     let config = Default::default();
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -82,7 +82,7 @@ async fn limited_body_length() {
 
     req.body_length = BodyLength::MessageContent;
 
-    let sigs = common::sign(headers, &body, [req]).await;
+    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -92,7 +92,7 @@ async fn limited_body_length() {
 
     body.extend(b"\r\n-- trailing content, ignored --\r\n");
 
-    let sigs = common::verify(&resolver, &headers, &body, &config).await;
+    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
