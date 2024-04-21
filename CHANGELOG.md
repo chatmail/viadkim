@@ -7,6 +7,13 @@ minimum supported Rust version being considered breaking changes.
 
 [semantic versioning]: https://doc.rust-lang.org/cargo/reference/semver.html
 
+## 0.1.1 (unreleased)
+
+### Fixed
+
+* In both body canonicalization algorithms, a body consisting of only
+  empty/blank lines is now correctly canonicalized to a single CRLF (`\r\n`).
+
 ## 0.1.0 (2023-11-24)
 
 Initial release.

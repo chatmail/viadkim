@@ -146,7 +146,7 @@ impl BodyCanonicalizer {
         Self {
             kind,
             state: CanonState::Init,
-            blank_line: true,
+            blank_line: false,
             empty_lines: 0,
         }
     }
@@ -359,6 +359,7 @@ impl BodyCanonicalizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::signature::CanonicalizationAlgorithm::*;
 
     #[test]
     fn canonicalize_headers_relaxed_ok() {
@@ -377,11 +378,7 @@ mod tests {
         ];
 
         assert_eq!(
-            canonicalize_headers(
-                CanonicalizationAlgorithm::Relaxed,
-                &headers,
-                &selected_headers,
-            ),
+            canonicalize_headers(Relaxed, &headers, &selected_headers),
             &b"to:another one\r\nfrom:Good\r\nto:see me\r\n"[..],
         );
     }
@@ -396,7 +393,7 @@ mod tests {
         let example = example.replace('\n', "\r\n");
 
         let mut result = vec![];
-        canonicalize_header(&mut result, CanonicalizationAlgorithm::Relaxed, "Dkim-Signature", &example);
+        canonicalize_header(&mut result, Relaxed, "Dkim-Signature", &example);
 
         assert_eq!(
             result,
@@ -408,7 +405,7 @@ mod tests {
 
     #[test]
     fn body_canon_simple_ok() {
-        let bc = BodyCanonicalizer::new(CanonicalizationAlgorithm::Simple);
+        let bc = BodyCanonicalizer::new(Simple);
 
         let body = canonicalize_chunks(
             bc,
@@ -419,8 +416,31 @@ mod tests {
     }
 
     #[test]
+    fn body_canon_simple_cases() {
+        fn c(bs: &[u8]) -> Vec<u8> {
+            let bc = BodyCanonicalizer::new(Simple);
+            canonicalize_chunks(bc, &[bs])
+        }
+
+        assert_eq!(c(b""), b"\r\n");
+        assert_eq!(c(b"\r"), b"\r\r\n");
+        assert_eq!(c(b"\rx"), b"\rx\r\n");
+        assert_eq!(c(b"\r\r"), b"\r\r\r\n");
+        assert_eq!(c(b"x"), b"x\r\n");
+        assert_eq!(c(b"x\r"), b"x\r\r\n");
+        assert_eq!(c(b"x\r\n"), b"x\r\n");
+        assert_eq!(c(b"x\r\n\r\n"), b"x\r\n");
+        assert_eq!(c(b"x\r\n\r\n\rx"), b"x\r\n\r\n\rx\r\n");
+        assert_eq!(c(b"\n"), b"\n\r\n");
+        assert_eq!(c(b"\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r"), b"\r\n\r\r\n");
+        assert_eq!(c(b"\r\n\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r\nx"), b"\r\n\r\nx\r\n");
+    }
+
+    #[test]
     fn body_canon_relaxed_basic() {
-        let bc = BodyCanonicalizer::new(CanonicalizationAlgorithm::Relaxed);
+        let bc = BodyCanonicalizer::new(Relaxed);
 
         let body = canonicalize_chunks(
             bc,
@@ -432,7 +452,7 @@ mod tests {
 
     #[test]
     fn body_canon_relaxed_small_chunks() {
-        let bc = BodyCanonicalizer::new(CanonicalizationAlgorithm::Relaxed);
+        let bc = BodyCanonicalizer::new(Relaxed);
 
         let body = canonicalize_chunks(
             bc,
@@ -451,11 +471,63 @@ mod tests {
 
     #[test]
     fn body_canon_relaxed_initial_empty_lines() {
-        let bc = BodyCanonicalizer::new(CanonicalizationAlgorithm::Relaxed);
+        let bc = BodyCanonicalizer::new(Relaxed);
 
         let body = canonicalize_chunks(bc, &[b"\r\n\r\n", b"\ra \r", b"\nb  ", b"c"]);
 
         assert_eq!(body, b"\r\n\r\n\ra\r\nb c\r\n");
+    }
+
+    #[test]
+    fn body_canon_relaxed_cases() {
+        fn c(bs: &[u8]) -> Vec<u8> {
+            let bc = BodyCanonicalizer::new(Relaxed);
+            canonicalize_chunks(bc, &[bs])
+        }
+
+        assert_eq!(c(b""), b"");
+        assert_eq!(c(b" "), b"\r\n");
+        assert_eq!(c(b"  "), b"\r\n");
+        assert_eq!(c(b"  x"), b" x\r\n");
+        assert_eq!(c(b" x"), b" x\r\n");
+        assert_eq!(c(b" \r"), b" \r\r\n");
+        assert_eq!(c(b" \r "), b" \r\r\n");
+        assert_eq!(c(b" \r\r"), b" \r\r\r\n");
+        assert_eq!(c(b" \rx"), b" \rx\r\n");
+        assert_eq!(c(b" \r\n"), b"\r\n");
+        assert_eq!(c(b" \r\n\r\n  \r\n"), b"\r\n");
+        // assert_eq!(c(b" \r\n\r\n  "), b"\r\n");  // ?
+        assert_eq!(c(b"\r"), b"\r\r\n");
+        assert_eq!(c(b"\r\r"), b"\r\r\r\n");
+        assert_eq!(c(b"\rx"), b"\rx\r\n");
+        assert_eq!(c(b"\r "), b"\r\r\n");
+        assert_eq!(c(b"\r  "), b"\r\r\n");
+        assert_eq!(c(b"x"), b"x\r\n");
+        assert_eq!(c(b"xy"), b"xy\r\n");
+        assert_eq!(c(b"x\r\n"), b"x\r\n");
+        assert_eq!(c(b"x\r\n\r\n"), b"x\r\n");
+
+        assert_eq!(c(b"x\r\ny"), b"x\r\ny\r\n");
+        assert_eq!(c(b"x\r\n\ry"), b"x\r\n\ry\r\n");
+        assert_eq!(c(b"x\r\n\r\ny"), b"x\r\n\r\ny\r\n");
+        assert_eq!(c(b"x\r\n\r\n\ry"), b"x\r\n\r\n\ry\r\n");
+        assert_eq!(c(b"x\r\n \r\ny"), b"x\r\n\r\ny\r\n");
+        assert_eq!(c(b"x\r\n  \r\ny"), b"x\r\n\r\ny\r\n");
+        assert_eq!(c(b"x\r\n  z\r\ny"), b"x\r\n z\r\ny\r\n");
+        assert_eq!(c(b"x\r\n  z \r\ny"), b"x\r\n z\r\ny\r\n");
+        assert_eq!(c(b"x\r\n  z  \r\ny"), b"x\r\n z\r\ny\r\n");
+
+        assert_eq!(c(b"x y z\r\n"), b"x y z\r\n");
+        assert_eq!(c(b"x  y z\r\n"), b"x y z\r\n");
+        assert_eq!(c(b"x  y z \r\n"), b"x y z\r\n");
+
+        assert_eq!(c(b"\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r"), b"\r\n\r\r\n");
+        assert_eq!(c(b"\r\n\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n \r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n  \r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r\nx"), b"\r\n\r\nx\r\n");
+        assert_eq!(c(b"\r\n \r\nx"), b"\r\n\r\nx\r\n");
     }
 
     fn canonicalize_chunks(mut bc: BodyCanonicalizer, chunks: &[&[u8]]) -> Vec<u8> {
