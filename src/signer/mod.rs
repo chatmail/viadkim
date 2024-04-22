@@ -1,5 +1,5 @@
 // viadkim – implementation of the DKIM specification
-// Copyright © 2022–2023 David Bürgin <dbuergin@gluet.ch>
+// Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 //
 // This program is free software: you can redistribute it and/or modify it under
 // the terms of the GNU General Public License as published by the Free Software

@@ -7,7 +7,7 @@ minimum supported Rust version being considered breaking changes.
 
 [semantic versioning]: https://doc.rust-lang.org/cargo/reference/semver.html
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2024-04-22)
 
 ### Fixed
 
