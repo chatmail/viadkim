@@ -33,6 +33,13 @@ minimum supported Rust version being considered breaking changes.
 [`viadkim::verify`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/verifier/fn.verify.html
 [`tag_list`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/tag_list/index.html
 
+## 0.1.1 (2024-04-22)
+
+### Fixed
+
+* In both body canonicalization algorithms, a body consisting of only
+  empty/blank lines is now correctly canonicalized to a single CRLF (`\r\n`).
+
 ## 0.1.0 (2023-11-24)
 
 Initial release.
