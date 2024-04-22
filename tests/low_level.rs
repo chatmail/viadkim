@@ -34,8 +34,8 @@ async fn low_level_sign() {
 
     // canonicalize body and hash it
     let mut bc = BodyCanonicalizer::new(canon_alg);
-    let mut cbody = bc.canonicalize_chunk(&body[..]);
-    cbody.extend(bc.finish());
+    let mut cbody = bc.canonicalize_chunk(&body[..]).into_owned();
+    cbody.extend(bc.finish().into_owned());
     let body_hash1 = crypto::digest(hash_alg, &cbody);
 
     let body_hash = viadkim::encode_base64(body_hash1);
@@ -163,8 +163,8 @@ async fn low_level_verify() {
     // calculate body hash
 
     let mut bc = BodyCanonicalizer::new(canon.body);
-    let mut cbody = bc.canonicalize_chunk(&body[..]);
-    cbody.extend(bc.finish());
+    let mut cbody = bc.canonicalize_chunk(&body[..]).into_owned();
+    cbody.extend(bc.finish().into_owned());
     let body_hash = crypto::digest(hash_alg, &cbody);
 
     assert_eq!(body_hash, sig.body_hash);

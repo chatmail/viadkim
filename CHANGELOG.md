@@ -7,7 +7,7 @@ minimum supported Rust version being considered breaking changes.
 
 [semantic versioning]: https://doc.rust-lang.org/cargo/reference/semver.html
 
-## 0.2.0-alpha.2 (2024-04-13)
+## 0.2.0-alpha.3 (unreleased)
 
 ### Changed
 
@@ -16,6 +16,8 @@ minimum supported Rust version being considered breaking changes.
   former `SignRequest::valid_duration`. The new error variant
   `RequestError::ExpirationNotAfterTimestamp` is used to signal that *t=* and
   *x=* conflict.
+* Canonicalized chunks returned by `BodyCanonicalizer` are now of type `Cow<'_,
+  [u8]>` instead of `Vec<u8>`.
 
 ### Added
 

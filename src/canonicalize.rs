@@ -20,7 +20,7 @@ use crate::{
     header::{FieldBody, FieldName, HeaderFields},
     signature::CanonicalizationAlgorithm,
 };
-use std::collections::HashSet;
+use std::{borrow::Cow, collections::HashSet};
 
 const SP: u8 = b' ';
 const CR: u8 = b'\r';
@@ -123,7 +123,7 @@ fn canonicalize_header_relaxed(result: &mut Vec<u8>, value: &[u8]) {
 
 // which state are we in = what did we see last?
 #[derive(Clone, Copy)]
-enum CanonState {
+enum CState {
     Init,
     CrLf,
     Cr,
@@ -141,7 +141,7 @@ enum CanonState {
 #[derive(Clone)]
 pub struct BodyCanonicalizer {
     kind: CanonicalizationAlgorithm,
-    state: CanonState,
+    state: CState,
     blank_line: bool,  // whether currently on an empty or blank line
     empty_lines: usize,  // number of empty lines seen
 }
@@ -151,7 +151,7 @@ impl BodyCanonicalizer {
     pub fn new(kind: CanonicalizationAlgorithm) -> Self {
         Self {
             kind,
-            state: CanonState::Init,
+            state: CState::Init,
             blank_line: false,
             empty_lines: 0,
         }
@@ -159,29 +159,44 @@ impl BodyCanonicalizer {
 
     // Canonicalisation recognises only CRLF as line separator/terminator, stray
     // CR and LF are treated like other bytes.
+
     /// Canonicalizes a chunk of message body content.
-    pub fn canonicalize_chunk(&mut self, bytes: &[u8]) -> Vec<u8> {
+    pub fn canonicalize_chunk<'a>(&mut self, bytes: &'a [u8]) -> Cow<'a, [u8]> {
         match self.kind {
             CanonicalizationAlgorithm::Simple => self.canon_chunk_simple(bytes),
             CanonicalizationAlgorithm::Relaxed => self.canon_chunk_relaxed(bytes),
         }
     }
 
-    fn canon_chunk_simple(&mut self, bytes: &[u8]) -> Vec<u8> {
+    fn canon_chunk_simple<'a>(&mut self, mut bytes: &'a [u8]) -> Cow<'a, [u8]> {
+        // Optimisation for the common case: whole message body with final CRLFs
+        // may be returned directly in borrowed form.
+        if matches!(self.state, CState::Init) {
+            if let Some(mut bnext) = bytes.strip_suffix(&CRLF) {
+                while let Some(bx) = bnext.strip_suffix(&CRLF) {
+                    (bytes, bnext) = (bnext, bx);
+                    self.empty_lines += 1;
+                }
+                self.blank_line = true;
+                self.state = CState::CrLf;
+                return bytes.into();
+            }
+        }
+
         let mut result = Vec::with_capacity(bytes.len());
 
         for &b in bytes {
             match self.state {
-                CanonState::Init | CanonState::CrLf => {
+                CState::Init | CState::CrLf => {
                     if b == CR {
-                        self.state = CanonState::Cr;
+                        self.state = CState::Cr;
                     } else {
                         self.flush_empty_lines(&mut result);
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::Cr => {
+                CState::Cr => {
                     if b == LF {
                         if self.blank_line {
                             self.empty_lines += 1;
@@ -189,7 +204,7 @@ impl BodyCanonicalizer {
                             result.extend(CRLF);
                             self.blank_line = true;
                         }
-                        self.state = CanonState::CrLf;
+                        self.state = CState::CrLf;
                         continue;
                     }
 
@@ -198,24 +213,24 @@ impl BodyCanonicalizer {
 
                     if b != CR {
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::Byte => {
+                CState::Byte => {
                     if b == CR {
-                        self.state = CanonState::Cr;
+                        self.state = CState::Cr;
                     } else {
                         result.push(b);
                     }
                 }
-                CanonState::Wsp | CanonState::WspCr => unreachable!(),
+                CState::Wsp | CState::WspCr => unreachable!(),
             }
         }
 
-        result
+        result.into()
     }
 
-    fn canon_chunk_relaxed(&mut self, bytes: &[u8]) -> Vec<u8> {
+    fn canon_chunk_relaxed<'a>(&mut self, bytes: &'a [u8]) -> Cow<'a, [u8]> {
         fn is_wsp(b: u8) -> bool {
             matches!(b, b'\t' | b' ')
         }
@@ -224,28 +239,28 @@ impl BodyCanonicalizer {
 
         for &b in bytes {
             match self.state {
-                CanonState::Init | CanonState::CrLf => {
+                CState::Init | CState::CrLf => {
                     if is_wsp(b) {
-                        self.state = CanonState::Wsp;
+                        self.state = CState::Wsp;
                     } else if b == CR {
-                        self.state = CanonState::Cr;
+                        self.state = CState::Cr;
                     } else {
                         self.flush_empty_lines(&mut result);
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::Wsp => {
+                CState::Wsp => {
                     if b == CR {
-                        self.state = CanonState::WspCr;
+                        self.state = CState::WspCr;
                     } else if !is_wsp(b) {
                         self.flush_empty_lines(&mut result);
                         result.push(SP);
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::Cr => {
+                CState::Cr => {
                     if b == LF {
                         if self.blank_line {
                             self.empty_lines += 1;
@@ -253,7 +268,7 @@ impl BodyCanonicalizer {
                             result.extend(CRLF);
                             self.blank_line = true;
                         }
-                        self.state = CanonState::CrLf;
+                        self.state = CState::CrLf;
                         continue;
                     }
 
@@ -261,13 +276,13 @@ impl BodyCanonicalizer {
                     result.push(CR);
 
                     if is_wsp(b) {
-                        self.state = CanonState::Wsp;
+                        self.state = CState::Wsp;
                     } else if b != CR {
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::WspCr => {
+                CState::WspCr => {
                     if b == LF {
                         if self.blank_line {
                             self.empty_lines += 1;
@@ -275,7 +290,7 @@ impl BodyCanonicalizer {
                             result.extend(CRLF);
                             self.blank_line = true;
                         }
-                        self.state = CanonState::CrLf;
+                        self.state = CState::CrLf;
                         continue;
                     }
 
@@ -284,19 +299,19 @@ impl BodyCanonicalizer {
                     result.push(CR);
 
                     if b == CR {
-                        self.state = CanonState::Cr;
+                        self.state = CState::Cr;
                     } else if is_wsp(b) {
-                        self.state = CanonState::Wsp;
+                        self.state = CState::Wsp;
                     } else {
                         result.push(b);
-                        self.state = CanonState::Byte;
+                        self.state = CState::Byte;
                     }
                 }
-                CanonState::Byte => {
+                CState::Byte => {
                     if is_wsp(b) {
-                        self.state = CanonState::Wsp;
+                        self.state = CState::Wsp;
                     } else if b == CR {
-                        self.state = CanonState::Cr;
+                        self.state = CState::Cr;
                     } else {
                         result.push(b);
                     }
@@ -304,50 +319,50 @@ impl BodyCanonicalizer {
             }
         }
 
-        result
+        result.into()
     }
 
     /// Produces the final chunk of canonicalized message body content.
-    pub fn finish(mut self) -> Vec<u8> {
+    pub fn finish(mut self) -> Cow<'static, [u8]> {
         match self.kind {
             CanonicalizationAlgorithm::Simple => {
                 match self.state {
-                    CanonState::Init => CRLF.to_vec(),  // empty body is CRLF
-                    CanonState::CrLf => vec![],
-                    CanonState::Cr => {
+                    CState::Init => (&CRLF[..]).into(),  // empty body is CRLF
+                    CState::CrLf => (&[][..]).into(),
+                    CState::Cr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(CR);
                         result.extend(CRLF);  // body needs final CRLF
-                        result
+                        result.into()
                     }
-                    CanonState::Byte => CRLF.to_vec(),  // body needs final CRLF
-                    CanonState::Wsp | CanonState::WspCr => unreachable!(),
+                    CState::Byte => (&CRLF[..]).into(),  // body needs final CRLF
+                    CState::Wsp | CState::WspCr => unreachable!(),
                 }
             }
             CanonicalizationAlgorithm::Relaxed => {
                 match self.state {
-                    CanonState::Init | CanonState::CrLf => vec![],
-                    CanonState::Cr => {
+                    CState::Init | CState::CrLf => (&[][..]).into(),
+                    CState::Cr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(CR);
                         result.extend(CRLF);  // non-empty body needs final CRLF
-                        result
+                        result.into()
                     }
-                    CanonState::Wsp => {
+                    CState::Wsp => {
                         // unspecified how to treat final WSP: drop, no flush
-                        CRLF.to_vec()  // non-empty body needs final CRLF
+                        (&CRLF[..]).into()  // non-empty body needs final CRLF
                     }
-                    CanonState::WspCr => {
+                    CState::WspCr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(SP);
                         result.push(CR);
                         result.extend(CRLF);  // non-empty body needs final CRLF
-                        result
+                        result.into()
                     }
-                    CanonState::Byte => CRLF.to_vec(),  // non-empty body needs final CRLF
+                    CState::Byte => (&CRLF[..]).into(),  // non-empty body needs final CRLF
                 }
             }
         }
@@ -447,6 +462,22 @@ mod tests {
     }
 
     #[test]
+    fn body_canon_simple_optimized() {
+        fn c(chunk1: &[u8], chunk2: &[u8]) -> Vec<u8> {
+            let bc = BodyCanonicalizer::new(Simple);
+            canonicalize_chunks(bc, &[chunk1, chunk2])
+        }
+
+        // Some glass box test cases exercising the optimised path.
+        assert_eq!(c(b"", b"x"), b"x\r\n");
+        assert_eq!(c(b"\r\n", b"\r\n"), b"\r\n");
+        assert_eq!(c(b"x\r\n", b"\r\nx"), b"x\r\n\r\nx\r\n");
+        assert_eq!(c(b"\r\n\r\n\r\n", b""), b"\r\n");
+        assert_eq!(c(b"\r\n\r\n\r\n", b"\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r\n\r\n", b"\r"), b"\r\n\r\n\r\n\r\r\n");
+    }
+
+    #[test]
     fn body_canon_relaxed_basic() {
         let bc = BodyCanonicalizer::new(Relaxed);
 
@@ -541,9 +572,9 @@ mod tests {
     fn canonicalize_chunks(mut bc: BodyCanonicalizer, chunks: &[&[u8]]) -> Vec<u8> {
         let mut result = vec![];
         for c in chunks {
-            result.extend(bc.canonicalize_chunk(c));
+            result.extend(bc.canonicalize_chunk(c).into_owned());
         }
-        result.extend(bc.finish());
+        result.extend(bc.finish().into_owned());
         result
     }
 }
