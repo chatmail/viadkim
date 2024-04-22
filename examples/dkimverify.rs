@@ -3,7 +3,7 @@ use std::{env, process};
 use tokio::io::{self, AsyncReadExt};
 use viadkim::Config;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     let _ = tracing_subscriber::fmt::try_init();
 

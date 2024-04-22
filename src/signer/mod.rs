@@ -543,7 +543,10 @@ struct SignerTask<T> {
 /// message when sending it out.
 ///
 /// ```
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// # use tokio::runtime::Builder;
+/// #
+/// # let rt = Builder::new_current_thread().enable_all().build().unwrap();
+/// # rt.block_on(async {
 /// use viadkim::*;
 ///
 /// let header = "From: me@example.com\r\n\

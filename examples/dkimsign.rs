@@ -8,7 +8,7 @@ use viadkim::{
     SigningKey, SigningOutput,
 };
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     let _ = tracing_subscriber::fmt::try_init();
 

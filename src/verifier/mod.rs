@@ -546,9 +546,12 @@ struct VerifierTask {
 /// high-level API.
 ///
 /// ```
-/// # use std::{future::Future, io::{self, ErrorKind}, pin::Pin};
+/// # use std::{future::Future, io::{self, ErrorKind}, pin::Pin, time::{Duration, SystemTime}};
+/// # use tokio::runtime::Builder;
+/// #
 /// # #[derive(Clone)]
 /// # struct MockLookupTxt;
+/// #
 /// # impl viadkim::verifier::LookupTxt for MockLookupTxt {
 /// #     type Answer = Vec<io::Result<Vec<u8>>>;
 /// #     type Query<'a> = Pin<Box<dyn Future<Output = io::Result<Self::Answer>> + Send + 'a>>;
@@ -567,7 +570,9 @@ struct VerifierTask {
 /// #         })
 /// #     }
 /// # }
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
+/// #
+/// # let rt = Builder::new_current_thread().enable_all().build().unwrap();
+/// # rt.block_on(async {
 /// use viadkim::*;
 ///
 /// let header =
@@ -592,8 +597,7 @@ struct VerifierTask {
 ///
 /// let config = Config::default();
 /// # let mut config = config;
-/// # config.fixed_system_time =
-/// #     Some(std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1687435411));
+/// # config.fixed_system_time = Some(SystemTime::UNIX_EPOCH + Duration::from_secs(1687435411));
 ///
 /// let mut verifier = Verifier::verify_header(&resolver, &header, &config)
 ///     .await
