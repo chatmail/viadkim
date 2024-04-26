@@ -143,7 +143,8 @@ pub struct FieldBody(Box<[u8]>);
 
 impl FieldBody {
     /// Creates a new header field body containing the given bytes. The input
-    /// must use CRLF for continuation lines.
+    /// must use CRLF for continuation lines. The final CRLF that ends the
+    /// header field body must not be included.
     ///
     /// # Errors
     ///

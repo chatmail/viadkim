@@ -1073,6 +1073,7 @@ dependencies = [
  "hickory-resolver",
  "idna",
  "pkcs8",
+ "rand",
  "rsa",
  "sha1",
  "sha2",

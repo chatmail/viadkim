@@ -62,7 +62,8 @@ pub fn canonicalize_headers(
 /// Canonicalizes a header field into some result vector.
 ///
 /// The given name and value must conform to the header field format as encoded
-/// by `FieldName` and `FieldBody`.
+/// by `FieldName` and `FieldBody`. This function does not include the final
+/// CRLF that ends a header value in the result.
 pub fn canonicalize_header(
     result: &mut Vec<u8>,
     algorithm: CanonicalizationAlgorithm,
@@ -149,10 +150,16 @@ pub struct BodyCanonicalizer {
 impl BodyCanonicalizer {
     /// Creates a new body canonicalizer.
     pub fn new(kind: CanonicalizationAlgorithm) -> Self {
+        // For the simple algorithm emit initial CRLF eagerly, for the relaxed
+        // algorithm delay emitting it (the body might be blank = empty result):
+        let blank_line = match kind {
+            CanonicalizationAlgorithm::Simple => false,
+            CanonicalizationAlgorithm::Relaxed => true,
+        };
         Self {
             kind,
             state: CState::Init,
-            blank_line: false,
+            blank_line,
             empty_lines: 0,
         }
     }
@@ -326,43 +333,47 @@ impl BodyCanonicalizer {
     pub fn finish(mut self) -> Cow<'static, [u8]> {
         match self.kind {
             CanonicalizationAlgorithm::Simple => {
+                // Body always needs final CRLF.
                 match self.state {
-                    CState::Init => (&CRLF[..]).into(),  // empty body is CRLF
+                    CState::Init | CState::Byte => (&CRLF[..]).into(),
                     CState::CrLf => (&[][..]).into(),
                     CState::Cr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(CR);
-                        result.extend(CRLF);  // body needs final CRLF
+                        result.extend(CRLF);
                         result.into()
                     }
-                    CState::Byte => (&CRLF[..]).into(),  // body needs final CRLF
                     CState::Wsp | CState::WspCr => unreachable!(),
                 }
             }
             CanonicalizationAlgorithm::Relaxed => {
+                // Non-empty body needs final CRLF.
                 match self.state {
                     CState::Init | CState::CrLf => (&[][..]).into(),
                     CState::Cr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(CR);
-                        result.extend(CRLF);  // non-empty body needs final CRLF
+                        result.extend(CRLF);
                         result.into()
                     }
                     CState::Wsp => {
-                        // unspecified how to treat final WSP: drop, no flush
-                        (&CRLF[..]).into()  // non-empty body needs final CRLF
+                        if self.blank_line {
+                            (&[][..]).into()
+                        } else {
+                            (&CRLF[..]).into()
+                        }
                     }
                     CState::WspCr => {
                         let mut result = vec![];
                         self.flush_empty_lines(&mut result);
                         result.push(SP);
                         result.push(CR);
-                        result.extend(CRLF);  // non-empty body needs final CRLF
+                        result.extend(CRLF);
                         result.into()
                     }
-                    CState::Byte => (&CRLF[..]).into(),  // non-empty body needs final CRLF
+                    CState::Byte => (&CRLF[..]).into(),
                 }
             }
         }
@@ -383,6 +394,11 @@ impl BodyCanonicalizer {
 mod tests {
     use super::*;
     use crate::signature::CanonicalizationAlgorithm::*;
+    use rand::{
+        distributions::{Distribution, Slice},
+        Rng,
+    };
+    use std::{ops::RangeInclusive, str};
 
     #[test]
     fn canonicalize_headers_relaxed_ok() {
@@ -525,17 +541,18 @@ mod tests {
         }
 
         assert_eq!(c(b""), b"");
-        assert_eq!(c(b" "), b"\r\n");
-        assert_eq!(c(b"  "), b"\r\n");
-        assert_eq!(c(b"  x"), b" x\r\n");
+        assert_eq!(c(b" "), b"");
+        assert_eq!(c(b"  "), b"");
         assert_eq!(c(b" x"), b" x\r\n");
+        assert_eq!(c(b"  x"), b" x\r\n");
+        assert_eq!(c(b"  x "), b" x\r\n");
         assert_eq!(c(b" \r"), b" \r\r\n");
         assert_eq!(c(b" \r "), b" \r\r\n");
         assert_eq!(c(b" \r\r"), b" \r\r\r\n");
         assert_eq!(c(b" \rx"), b" \rx\r\n");
-        assert_eq!(c(b" \r\n"), b"\r\n");
-        assert_eq!(c(b" \r\n\r\n  \r\n"), b"\r\n");
-        // assert_eq!(c(b" \r\n\r\n  "), b"\r\n");  // ?
+        assert_eq!(c(b" \r\n"), b"");
+        assert_eq!(c(b" \r\n\r\n  \r\n"), b"");
+        assert_eq!(c(b" \r\n\r\n  "), b"");
         assert_eq!(c(b"\r"), b"\r\r\n");
         assert_eq!(c(b"\r\r"), b"\r\r\r\n");
         assert_eq!(c(b"\rx"), b"\rx\r\n");
@@ -545,6 +562,7 @@ mod tests {
         assert_eq!(c(b"xy"), b"xy\r\n");
         assert_eq!(c(b"x\r\n"), b"x\r\n");
         assert_eq!(c(b"x\r\n\r\n"), b"x\r\n");
+        assert_eq!(c(b"x  "), b"x\r\n");
 
         assert_eq!(c(b"x\r\ny"), b"x\r\ny\r\n");
         assert_eq!(c(b"x\r\n\ry"), b"x\r\n\ry\r\n");
@@ -560,11 +578,13 @@ mod tests {
         assert_eq!(c(b"x  y z\r\n"), b"x y z\r\n");
         assert_eq!(c(b"x  y z \r\n"), b"x y z\r\n");
 
-        assert_eq!(c(b"\r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n"), b"");
         assert_eq!(c(b"\r\n\r"), b"\r\n\r\r\n");
-        assert_eq!(c(b"\r\n\r\n"), b"\r\n");
-        assert_eq!(c(b"\r\n \r\n"), b"\r\n");
-        assert_eq!(c(b"\r\n  \r\n"), b"\r\n");
+        assert_eq!(c(b"\r\n\r "), b"\r\n\r\r\n");
+        assert_eq!(c(b"\r\n\r\r"), b"\r\n\r\r\r\n");
+        assert_eq!(c(b"\r\n\r\n"), b"");
+        assert_eq!(c(b"\r\n \r\n"), b"");
+        assert_eq!(c(b"\r\n  \r\n"), b"");
         assert_eq!(c(b"\r\n\r\nx"), b"\r\n\r\nx\r\n");
         assert_eq!(c(b"\r\n \r\nx"), b"\r\n\r\nx\r\n");
     }
@@ -576,5 +596,102 @@ mod tests {
         }
         result.extend(bc.finish().into_owned());
         result
+    }
+
+    #[test]
+    #[ignore = "randomly generated test inputs"]
+    fn fuzz_simple() {
+        let alt_impl = |bytes: &_| {
+            str::from_utf8(bytes)
+                .unwrap()
+                .trim_end_matches("\r\n")
+                .bytes()
+                .chain(*b"\r\n")
+                .collect()
+        };
+
+        let s_elems = ["x", "\r", "\n", "\r\n"];
+        let s_len = 0..=9;
+
+        run_fuzz(300, Simple, &s_elems, s_len, alt_impl);
+    }
+
+    #[test]
+    #[ignore = "randomly generated test inputs"]
+    fn fuzz_relaxed() {
+        let alt_impl = |bytes: &_| {
+            let s = str::from_utf8(bytes).unwrap();
+
+            // Some commentary from RFC 6376, section 3.4.4.
+            // For each line:
+            let s = s.split("\r\n")
+                .map(|s| {
+                    let mut sp = false;
+                    // ‘a. Reduce whitespace:
+                    //     * Ignore all whitespace at the end of lines. […]
+                    s.trim_end_matches(' ')
+                        .chars()
+                        .filter(|&c| {
+                            // * Reduce all sequences of WSP within a line to a
+                            //   single SP character.’
+                            if c == ' ' {
+                                let ret = !sp;
+                                sp = true;
+                                ret
+                            } else {
+                                sp = false;
+                                true
+                            }
+                        })
+                        .collect::<String>()
+                })
+                .collect::<Vec<_>>()
+                .join("\r\n");
+
+            // ‘b. Ignore all empty lines at the end of the message body. […] If
+            //     the body is non-empty but does not end with a CRLF, a CRLF is
+            //     added.’
+            let s = s.trim_end_matches("\r\n");
+            let mut s = s.to_owned();
+            if !s.is_empty() {
+                s.push_str("\r\n");
+            }
+
+            s.bytes().collect()
+        };
+
+        let s_elems = ["x", " ", "\r", "\n", "\r\n"];
+        let s_len = 0..=12;
+
+        run_fuzz(1000, Relaxed, &s_elems, s_len, alt_impl);
+    }
+
+    fn run_fuzz(
+        repetitions: usize,
+        alg: CanonicalizationAlgorithm,
+        s_elems: &[&str],
+        s_len: RangeInclusive<u8>,
+        alt_impl: impl Fn(&[u8]) -> Vec<u8>,
+    ) {
+        let dist = Slice::new(s_elems).unwrap();
+
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..repetitions {
+            let n = rng.gen_range(s_len.clone()).into();
+            let s: String = dist.sample_iter(&mut rng).copied().take(n).collect();
+            let bytes = s.as_bytes();
+
+            let r1 = canonicalize_chunks(BodyCanonicalizer::new(alg), &[bytes]);
+            let r2 = alt_impl(bytes);
+
+            assert_eq!(
+                r1,
+                r2,
+                "divergent results for input {s:?}: {:?} != {:?}",
+                str::from_utf8(&r1).unwrap(),
+                str::from_utf8(&r2).unwrap()
+            );
+        }
     }
 }

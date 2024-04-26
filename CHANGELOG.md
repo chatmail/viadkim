@@ -34,6 +34,12 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
 * New method `VerifyingKey::key_type` returns the key type of a verifying key.
 * Missing API documentation has been filled in.
 
+### Fixed
+
+* *Relaxed* body canonicalization now produces the empty result for a completely
+  blank body. (This change imposed itself after further testing and another
+  close reading of the RFC, and follows the behaviour of OpenDKIM.)
+
 [`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/signer/enum.Expiration.html
 [`viadkim::sign`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/signer/fn.sign.html
 [`viadkim::verify`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/verifier/fn.verify.html
