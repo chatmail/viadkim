@@ -17,9 +17,9 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
 
 * When signing, specification of the *x=* tag is now done through field
   `SignRequest::expiration` taking an [`Expiration`] value, instead of the
-  former `SignRequest::valid_duration`. The new error variant
-  `RequestError::ExpirationNotAfterTimestamp` is used to signal that *t=* and
-  *x=* conflict.
+  former field `SignRequest::valid_duration`. The new error variant
+  `RequestError::ExpirationNotAfterTimestamp` indicates that *t=* and *x=*
+  conflict.
 * Canonicalized chunks returned by `BodyCanonicalizer` are now of type `Cow<'_,
   [u8]>` instead of `Vec<u8>`.
 
@@ -28,10 +28,10 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
 * The new convenience functions [`viadkim::sign`] and [`viadkim::verify`]
   encapsulate the most common usage pattern of `Signer` and `Verifier` in a
   single function call.
-* New type alias `SigningResult` for signing output.
-* New method `VerifyingKey::key_type` returns the key type of a verifying key.
 * The new module [`tag_list`] adds basic support for working with *tag=value
   lists*.
+* New type alias `SigningResult` represents signing output.
+* New method `VerifyingKey::key_type` returns the key type of a verifying key.
 * Missing API documentation has been filled in.
 
 [`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.2/viadkim/signer/enum.Expiration.html
