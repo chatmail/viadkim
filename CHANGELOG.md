@@ -9,6 +9,10 @@ minimum supported Rust version being considered breaking changes.
 
 ## 0.2.0-alpha.3 (unreleased)
 
+With this release, development has moved from GitLab to the [Codeberg] platform.
+
+[Codeberg]: https://codeberg.org
+
 ### Changed
 
 * When signing, specification of the *x=* tag is now done through field

@@ -7,8 +7,8 @@ description = "Implementation of the DomainKeys Identified Mail (DKIM) specifica
 license = "GPL-3.0-or-later"
 categories = ["cryptography", "email"]
 keywords = ["dkim", "email", "smtp"]
-repository = "https://gitlab.com/glts/viadkim"
-exclude = ["/.gitignore", "/.gitlab-ci.yml"]
+repository = "https://codeberg.org/glts/viadkim"
+exclude = ["/.gitignore", "/.woodpecker.yml"]
 
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc"] }
