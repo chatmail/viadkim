@@ -30,6 +30,8 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
   single function call.
 * The new module [`tag_list`] adds basic support for working with *tag=value
   lists*.
+* The new associated functions `DkimSignature::from_tag_list` and
+  `DkimKeyRecord::from_tag_list` parse their types from a `&TagList<'_>`.
 * New type alias `SigningResult` represents signing output.
 * New method `VerifyingKey::key_type` returns the key type of a verifying key.
 * Missing API documentation has been filled in.

@@ -72,12 +72,12 @@ impl<'a> TagList<'a> {
     /// If the string is not a valid tag list, an error is returned.
     pub fn from_str(s: &'a str) -> Result<Self, TagListError> {
         match strip_tag_list(s) {
-            Some(("", tag_list)) => {
+            Some(("", tags)) => {
                 let mut names_seen = HashSet::new();
-                if tag_list.iter().any(|tag| !names_seen.insert(tag.name)) {
+                if tags.iter().any(|tag| !names_seen.insert(tag.name)) {
                     return Err(TagListError::DuplicateTag);
                 }
-                Ok(Self(tag_list))
+                Ok(Self(tags))
             }
             _ => Err(TagListError::Syntax),
         }
@@ -93,6 +93,28 @@ impl<'a> AsRef<[TagSpec<'a>]> for TagList<'a> {
 impl<'a> From<TagList<'a>> for Vec<TagSpec<'a>> {
     fn from(tag_list: TagList<'a>) -> Self {
         tag_list.0
+    }
+}
+
+impl<'a> TryFrom<Vec<TagSpec<'a>>> for TagList<'a> {
+    type Error = TagListError;
+
+    fn try_from(tags: Vec<TagSpec<'a>>) -> Result<Self, Self::Error> {
+        if tags.is_empty() {
+            return Err(TagListError::Syntax);
+        }
+
+        let mut names_seen = HashSet::new();
+        for tag in &tags {
+            if !is_tag_name(tag.name) || !is_tag_value(tag.value) {
+                return Err(TagListError::Syntax);
+            }
+            if !names_seen.insert(tag.name) {
+                return Err(TagListError::DuplicateTag);
+            }
+        }
+
+        Ok(Self(tags))
     }
 }
 

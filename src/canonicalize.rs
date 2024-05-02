@@ -151,7 +151,7 @@ impl BodyCanonicalizer {
     /// Creates a new body canonicalizer.
     pub fn new(kind: CanonicalizationAlgorithm) -> Self {
         // For the simple algorithm emit initial CRLF eagerly, for the relaxed
-        // algorithm delay emitting it (the body might be blank = empty result):
+        // algorithm delay emitting it (body might be blank = empty result):
         let blank_line = match kind {
             CanonicalizationAlgorithm::Simple => false,
             CanonicalizationAlgorithm::Relaxed => true,
