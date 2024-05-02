@@ -22,6 +22,7 @@ use crate::{
         SigningAlgorithm,
     },
     signer::OutputFormat,
+    tag_list,
     util::{self, CanonicalStr},
 };
 use std::{cmp::Ordering, fmt::Write, iter};
@@ -181,16 +182,10 @@ fn format_without_signature(
             "x" => format_tag_x(out, i, fmt, sig.expiration.unwrap()),
             "z" => format_tag_z(out, i, fmt, &sig.copied_headers),
             tag_name => {
-                let (t, v) = sig
-                    .ext_tags
-                    .iter()
+                let (t, v) = sig.ext_tags.iter()
                     .find(|(t, _)| t.as_ref() == tag_name)
                     .unwrap();
-
-                // A tag value is allowed to contain FWS. In those cases, make
-                // no effort to introduce any line breaks. The result will not
-                // be pretty, but still well-formed.
-                format_tag(out, i, fmt, t, v);
+                format_ext_tag(out, i, fmt, t, v);
             }
         }
     }
@@ -461,6 +456,35 @@ fn format_tag_z(out: &mut String, i: &mut usize, fmt: Fmt<'_>, value: &[(FieldNa
     }
 }
 
+// A tag value is allowed to contain FWS. Not knowing the semantics of a
+// multi-line value, print as-is, but adjust the cursor for first and last line.
+fn format_ext_tag(out: &mut String, i: &mut usize, fmt: Fmt<'_>, name: &str, value: &str) {
+    debug_assert!(tag_list::is_tag_name(name));
+    debug_assert!(tag_list::is_tag_value(value));
+
+    let Fmt { last, .. } = fmt;
+
+    // multi-line or not?
+    let taglen = if let Some((first_line, _)) = value.split_once("\r\n") {
+        name.len() + first_line.chars().count() + 1
+    } else {
+        name.len() + value.chars().count() + if last { 1 } else { 2 }
+    };
+
+    advance_i_initial(out, i, taglen, fmt);
+    write!(out, "{name}={value}").unwrap();
+
+    // Entire (possibly multi-line) value printed, now adjust i if multi-line.
+    // Indent length is ignored, don’t want to change internal FWS at all.
+    if let Some((_, last_line)) = value.rsplit_once("\r\n") {
+        *i = last_line.chars().count() + if last { 0 } else { 1 };
+    }
+
+    if !last {
+        out.push(';');
+    }
+}
+
 /// Advances the cursor `i`, making space for an item of length `len`, inserting
 /// line break and indentation if necessary.
 fn advance_i(out: &mut String, i: &mut usize, len: usize, fmt: Fmt<'_>) {
@@ -592,5 +616,30 @@ mod tests {
 
         assert_eq!(out, " z=From:=2\r\n 0Me=20<x@\r\n gluet.ch>\r\n |To:=20♥;");
         assert_eq!(i, 10);
+    }
+
+    #[test]
+    fn format_ext_tag_ok() {
+        let mut out = String::new();
+        let mut i = 0;
+        let fmt = Fmt { width: 8, indent: " ", last: false, ascii: false };
+        let name = "ex";
+        let value = "123";
+
+        format_ext_tag(&mut out, &mut i, fmt, name, value);
+
+        assert_eq!(out, " ex=123;");
+        assert_eq!(i, 8);
+
+        let mut out = String::new();
+        let mut i = 6;
+        let fmt = Fmt { width: 8, indent: " ", last: false, ascii: false };
+        let name = "ex";
+        let value = "123\r\n\txy";
+
+        format_ext_tag(&mut out, &mut i, fmt, name, value);
+
+        assert_eq!(out, "\r\n ex=123\r\n\txy;");
+        assert_eq!(i, 4);
     }
 }
