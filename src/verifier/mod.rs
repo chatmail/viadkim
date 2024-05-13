@@ -192,7 +192,8 @@ pub struct VerificationResult {
 ///
 /// This type encodes the three DKIM output states described in RFC 6376,
 /// section 3.9: `Success` corresponds to *SUCCESS*, `Failure` corresponds to
-/// both *PERMFAIL* and *TEMPFAIL*.
+/// both *PERMFAIL* and *TEMPFAIL*. Use [`VerificationStatus::to_dkim_result`]
+/// to convert to an RFC 8601 result.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum VerificationStatus {
     /// A *SUCCESS* result status.
@@ -618,7 +619,7 @@ struct VerifierTask {
 /// See [`Signer`][crate::signer::Signer] for how the above example message was
 /// signed.
 pub struct Verifier {
-    tasks: Vec<VerifierTask>,
+    tasks: Vec<VerifierTask>,  // non-empty
     body_hasher: BodyHasher,
 }
 
@@ -707,7 +708,7 @@ impl Verifier {
     ///
     /// The returned result vector is never empty.
     pub fn finish(self) -> Vec<VerificationResult> {
-        let body_hash_results = self.body_hasher.finish();
+        let bh_results = self.body_hasher.finish();
 
         let mut result = vec![];
 
@@ -718,7 +719,7 @@ impl Verifier {
                 VerificationStatus::Success => {
                     let sig = task.signature.as_ref()
                         .expect("successful verification missing signature");
-                    verify_body_hash(sig, &body_hash_results)
+                    verify_body_hash(sig, &bh_results)
                 }
                 status @ VerificationStatus::Failure(_) => status,
             };
@@ -735,18 +736,15 @@ impl Verifier {
     }
 }
 
-fn verify_body_hash(
-    sig: &DkimSignature,
-    body_hash_results: &BodyHashResults,
-) -> VerificationStatus {
+fn verify_body_hash(sig: &DkimSignature, bh_results: &BodyHashResults) -> VerificationStatus {
     trace!(domain = %sig.domain, selector = %sig.selector, "checking body hash for signature");
 
     let key = body_hasher_key(sig);
 
-    let body_hash_result = body_hash_results.get(&key)
+    let bh_result = bh_results.get(&key)
         .expect("requested body hash result not available");
 
-    match body_hash_result {
+    match bh_result {
         Ok((h, _)) => {
             if h == &sig.body_hash {
                 trace!("body hash matched");

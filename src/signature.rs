@@ -1271,7 +1271,7 @@ mod tests {
     }
 
     #[test]
-    fn rfc_example_signature() {
+    fn rfc6376_example_signature() {
         // See §3.5:
         let example = " v=1; a=rsa-sha256; d=example.net; s=brisbane;
    c=simple; q=dns/txt; i=@eng.example.net;

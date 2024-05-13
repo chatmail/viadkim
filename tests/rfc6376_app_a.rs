@@ -11,7 +11,7 @@ use viadkim::{
 
 /// Example from RFC 6376, appendix A.2, with public key in RSAPublicKey format.
 #[tokio::test]
-async fn rfc_appendix_a_rsa() {
+async fn rfc6376_appendix_a_rsa() {
     let _ = tracing_subscriber::fmt::try_init();
 
     let resolver = make_resolver_rsa();
@@ -29,7 +29,7 @@ async fn rfc_appendix_a_rsa() {
 
 /// Example from RFC 6376, appendix A.2, with public key in SPKI format.
 #[tokio::test]
-async fn rfc_appendix_a_spki() {
+async fn rfc6376_appendix_a_spki() {
     let _ = tracing_subscriber::fmt::try_init();
 
     let resolver = make_resolver_spki();

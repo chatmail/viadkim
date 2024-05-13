@@ -31,7 +31,7 @@ use tracing::trace;
 pub async fn perform_signing<T>(
     request: SignRequest<T>,
     headers: &HeaderFields,
-    body_hash_results: &BodyHashResults,
+    bh_results: &BodyHashResults,
 ) -> SigningResult
 where
     T: AsRef<SigningKey>,
@@ -49,10 +49,10 @@ where
     let hash_alg = algorithm.hash_algorithm();
     let key = (body_length, hash_alg, canonicalization.body);
 
-    let body_hash_result = body_hash_results.get(&key)
+    let bh_result = bh_results.get(&key)
         .expect("requested body hash result not available");
 
-    let (body_hash, final_len) = match body_hash_result {
+    let (body_hash, final_len) = match bh_result {
         Ok((h, final_len)) => (h.clone(), *final_len),
         Err(BodyHashError::InsufficientInput) => {
             trace!("not signing, got insufficient message body content");
@@ -109,7 +109,7 @@ where
     let sig = UnsignedDkimSignature {
         algorithm,
         body_hash,
-        canonicalization: request.canonicalization,
+        canonicalization,
         domain,
         signed_headers: signed_headers.into(),
         identity: request.identity,
@@ -132,56 +132,6 @@ where
 fn select_signed_headers(headers: &HeaderFields) -> Vec<&FieldName> {
     let def: HashSet<_> = signer::default_signed_headers().into_iter().collect();
     signer::select_headers(headers, move |name| def.contains(name)).collect()
-}
-
-async fn produce_signature(
-    sig: UnsignedDkimSignature,
-    signing_key: &SigningKey,
-    format: &OutputFormat,
-    headers: &HeaderFields,
-) -> SigningResult {
-    let b_len = estimate_b_tag_length(signing_key);
-
-    let (mut formatted_header_value, insertion_index) = sig.format_without_signature(format, b_len);
-
-    let header_name = &format.header_name;
-
-    let algorithm = sig.algorithm;
-    let hash_alg = algorithm.hash_algorithm();
-
-    let data_hash = message_hash::compute_data_hash(
-        hash_alg,
-        sig.canonicalization.header,
-        headers,
-        &sig.signed_headers,
-        header_name,
-        &formatted_header_value,
-    );
-
-    assert_eq!(signing_key.key_type(), algorithm.key_type());
-
-    let signature_data = sign_hash(signing_key, hash_alg, &data_hash)
-        .await?
-        .into_boxed_slice();
-
-    let sig = sig.into_signature(signature_data);
-
-    // insert signature into formatted DKIM-Signature header, store
-
-    format::insert_signature_data(
-        &mut formatted_header_value,
-        insertion_index,
-        header_name,
-        &sig.signature_data[..],
-        format.line_width.into(),
-        &format.indentation,
-    );
-
-    Ok(SigningOutput {
-        header_name: header_name.into(),
-        header_value: formatted_header_value,
-        signature: sig,
-    })
 }
 
 fn compute_t_and_x(
@@ -235,6 +185,56 @@ fn prepare_copied_headers(
         }
     }
     result
+}
+
+async fn produce_signature(
+    sig: UnsignedDkimSignature,
+    signing_key: &SigningKey,
+    format: &OutputFormat,
+    headers: &HeaderFields,
+) -> SigningResult {
+    let b_len = estimate_b_tag_length(signing_key);
+
+    let (mut formatted_header_value, insertion_index) = sig.format_without_signature(format, b_len);
+
+    let header_name = &format.header_name;
+
+    let algorithm = sig.algorithm;
+    let hash_alg = algorithm.hash_algorithm();
+
+    let data_hash = message_hash::compute_data_hash(
+        hash_alg,
+        sig.canonicalization.header,
+        headers,
+        &sig.signed_headers,
+        header_name,
+        &formatted_header_value,
+    );
+
+    assert_eq!(signing_key.key_type(), algorithm.key_type());
+
+    let signature_data = sign_hash(signing_key, hash_alg, &data_hash)
+        .await?
+        .into_boxed_slice();
+
+    let sig = sig.into_signature(signature_data);
+
+    // insert signature into formatted DKIM-Signature header
+
+    format::insert_signature_data(
+        &mut formatted_header_value,
+        insertion_index,
+        header_name,
+        &sig.signature_data[..],
+        format.line_width.into(),
+        &format.indentation,
+    );
+
+    Ok(SigningOutput {
+        header_name: header_name.into(),
+        header_value: formatted_header_value,
+        signature: sig,
+    })
 }
 
 fn estimate_b_tag_length(signing_key: &SigningKey) -> usize {

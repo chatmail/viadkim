@@ -64,7 +64,7 @@ The minimum supported Rust version is 1.67.0.
 ## Examples
 
 Two simple command-line utilities are included as examples, one for signing a
-message, and one for verifying a message’s signatures.
+message and one for verifying a message’s signatures.
 
 The program **`dkimsign`** produces a DKIM signature for the message provided on
 standard input. It takes three arguments: a path to a key file containing a

@@ -109,7 +109,7 @@ pub fn select_headers<'a, 'b: 'a>(
         .as_ref()
         .iter()
         .rev()
-        .filter_map(move |(name, _)| if pred(name) { Some(name) } else { None })
+        .filter_map(move |(name, _)| pred(name).then_some(name))
 }
 
 /// Returns a collection of headers that should be signed.
@@ -684,15 +684,14 @@ where
     ///
     /// The returned result vector is never empty.
     pub async fn sign(self) -> Vec<SigningResult> {
-        let body_hash_results = self.body_hasher.finish();
+        let bh_results = self.body_hasher.finish();
 
         let mut result = vec![];
 
         for task in self.tasks {
             let request = task.request;
 
-            let signing_result =
-                sign::perform_signing(request, &self.headers, &body_hash_results).await;
+            let signing_result = sign::perform_signing(request, &self.headers, &bh_results).await;
 
             result.push(signing_result);
         }

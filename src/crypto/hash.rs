@@ -73,9 +73,9 @@ impl CountingHasher {
     /// bytes (no limit if `None`).
     pub fn new(alg: HashAlgorithm, length: Option<usize>) -> Self {
         let digest: Box<dyn digest::DynDigest + Send + Sync> = match alg {
-            HashAlgorithm::Sha256 => Box::new(Sha256::default()),
+            HashAlgorithm::Sha256 => Box::<Sha256>::default(),
             #[cfg(feature = "pre-rfc8301")]
-            HashAlgorithm::Sha1 => Box::new(Sha1::default()),
+            HashAlgorithm::Sha1 => Box::<Sha1>::default(),
         };
 
         Self {
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn counting_hasher_rfc_examples() {
+    fn counting_hasher_rfc6376_examples() {
         // See §3.4.3:
         let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha256, b"\r\n");
         assert_eq!(util::encode_base64(&hash), "frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=");
@@ -182,7 +182,7 @@ mod tests {
 
     #[cfg(feature = "pre-rfc8301")]
     #[test]
-    fn counting_hasher_rfc_examples_sha1() {
+    fn counting_hasher_rfc6376_examples_sha1() {
         // See §3.4.3:
         let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha1, b"\r\n");
         assert_eq!(util::encode_base64(&hash), "uoq1oCgLlTqpdDX/iUbLy7J1Wic=");
