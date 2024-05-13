@@ -533,20 +533,20 @@ dkim-signature: v=2; d=example.com; s=sel; x=y
 
     #[test]
     fn validate_signed_headers_ok() {
-        let header = header_fields(["a", "b", "a", "c"]);
+        let headers = header_fields(["a", "b", "a", "c"]);
 
         let required = field_names([]);
         let exhaustive = field_names(["a", "d"]);
 
         let signed = field_names(["a", "b", "a", "a"]);
-        assert_eq!(validate_signed_headers(0, &header, &required, &exhaustive, &signed), Ok(()));
+        assert_eq!(validate_signed_headers(0, &headers, &required, &exhaustive, &signed), Ok(()));
 
         let signed = field_names(["a", "b", "a"]);
-        assert_eq!(validate_signed_headers(0, &header, &required, &exhaustive, &signed), Ok(()));
+        assert_eq!(validate_signed_headers(0, &headers, &required, &exhaustive, &signed), Ok(()));
 
         let signed = field_names(["a", "b"]);
         assert_eq!(
-            validate_signed_headers(0, &header, &required, &exhaustive, &signed),
+            validate_signed_headers(0, &headers, &required, &exhaustive, &signed),
             Err(VerificationError::Policy(
                 PolicyError::UnsignedHeaderOccurrence
             ))

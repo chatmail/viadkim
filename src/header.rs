@@ -280,7 +280,7 @@ impl IntoIterator for HeaderFields {
 impl FromStr for HeaderFields {
     type Err = HeaderFieldError;
 
-    /// Parses a header block into header fields.
+    /// Parses a header section into header fields.
     ///
     /// This function uses [`str::lines`] to split the input into lines, and
     /// therefore accepts both LF and CRLF line breaks.

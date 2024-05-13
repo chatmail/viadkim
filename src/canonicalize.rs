@@ -37,22 +37,18 @@ pub fn canonicalize_headers(
     let mut processed_indexes = HashSet::with_capacity(selected_headers.len());
 
     for selected_header in selected_headers {
-        for (i, (name, val)) in headers
+        if let Some((i, (name, val))) = headers
             .as_ref()
             .iter()
             .rev()
             .enumerate()
-            .filter(|(i, _)| !processed_indexes.contains(i))
+            .find(|(i, (name, _))| !processed_indexes.contains(i) && name == selected_header)
         {
-            if name == selected_header {
-                canonicalize_header(&mut result, algorithm, name, val);
+            canonicalize_header(&mut result, algorithm, name, val);
 
-                result.extend(CRLF);
+            result.extend(CRLF);
 
-                processed_indexes.insert(i);
-
-                break;
-            }
+            processed_indexes.insert(i);
         }
     }
 
@@ -600,7 +596,7 @@ mod tests {
 
     #[test]
     #[ignore = "randomly generated test inputs"]
-    fn fuzz_simple() {
+    fn fuzz_body_canonicalizer_simple() {
         let alt_impl = |bytes: &_| {
             str::from_utf8(bytes)
                 .unwrap()
@@ -618,11 +614,11 @@ mod tests {
 
     #[test]
     #[ignore = "randomly generated test inputs"]
-    fn fuzz_relaxed() {
+    fn fuzz_body_canonicalizer_relaxed() {
         let alt_impl = |bytes: &_| {
             let s = str::from_utf8(bytes).unwrap();
 
-            // Some commentary from RFC 6376, section 3.4.4.
+            // Some commentary from §3.4.4.
             // For each line:
             let s = s.split("\r\n")
                 .map(|s| {
@@ -673,13 +669,13 @@ mod tests {
         s_len: RangeInclusive<u8>,
         alt_impl: impl Fn(&[u8]) -> Vec<u8>,
     ) {
-        let dist = Slice::new(s_elems).unwrap();
+        let elems = Slice::new(s_elems).unwrap();
 
         let mut rng = rand::thread_rng();
 
         for _ in 0..repetitions {
             let n = rng.gen_range(s_len.clone()).into();
-            let s: String = dist.sample_iter(&mut rng).copied().take(n).collect();
+            let s: String = elems.sample_iter(&mut rng).copied().take(n).collect();
             let bytes = s.as_bytes();
 
             let r1 = canonicalize_chunks(BodyCanonicalizer::new(alg), &[bytes]);

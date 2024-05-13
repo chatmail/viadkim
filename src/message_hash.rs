@@ -79,9 +79,14 @@ pub enum BodyHasherStance {
 pub type BodyHasherKey = (Option<usize>, HashAlgorithm, CanonicalizationAlgorithm);
 
 /// Constructs a `BodyHasherKey` from DKIM signature data.
+///
+/// # Panics
+///
+/// Panics if the DKIM signature’s `body_length` value does not fit in a
+/// `usize`.
 pub fn body_hasher_key(sig: &DkimSignature) -> BodyHasherKey {
     let body_len = sig.body_length
-        .map(|len| len.try_into().expect("unexpected integer overflow"));
+        .map(|len| len.try_into().expect("integer overflow"));
     let hash_alg = sig.algorithm.hash_algorithm();
     let canon_alg = sig.canonicalization.body;
     (body_len, hash_alg, canon_alg)
@@ -278,22 +283,27 @@ impl BodyHashResults {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util;
+    use crate::{signature::CanonicalizationAlgorithm::*, util};
+    use rand::{
+        distributions::{Distribution, Slice},
+        Rng,
+    };
+    use std::ops::RangeInclusive;
 
     fn key_simple() -> BodyHasherKey {
-        (None, HashAlgorithm::Sha256, CanonicalizationAlgorithm::Simple)
+        (None, HashAlgorithm::Sha256, Simple)
     }
 
     fn limited_key_simple(n: usize) -> BodyHasherKey {
-        (Some(n), HashAlgorithm::Sha256, CanonicalizationAlgorithm::Simple)
+        (Some(n), HashAlgorithm::Sha256, Simple)
     }
 
     fn key_relaxed() -> BodyHasherKey {
-        (None, HashAlgorithm::Sha256, CanonicalizationAlgorithm::Relaxed)
+        (None, HashAlgorithm::Sha256, Relaxed)
     }
 
     fn limited_key_relaxed(n: usize) -> BodyHasherKey {
-        (Some(n), HashAlgorithm::Sha256, CanonicalizationAlgorithm::Relaxed)
+        (Some(n), HashAlgorithm::Sha256, Relaxed)
     }
 
     #[test]
@@ -391,8 +401,7 @@ David\r\n\
     #[test]
     fn body_hasher_reuse_canonicalized_chunk() {
         let key1 @ (len, hash_alg1, canon_alg1) = key_relaxed();
-        let key2 @ (_, hash_alg2, canon_alg2) =
-            (None, HashAlgorithm::Sha1, CanonicalizationAlgorithm::Relaxed);
+        let key2 @ (_, hash_alg2, canon_alg2) = (None, HashAlgorithm::Sha1, Relaxed);
 
         let mut hasher = BodyHasherBuilder::new(false);
         hasher.register_canonicalization(len, hash_alg1, canon_alg1);
@@ -410,5 +419,126 @@ David\r\n\
 
     fn sha256_digest(msg: &[u8]) -> Box<[u8]> {
         crypto::digest(HashAlgorithm::Sha256, msg)
+    }
+
+    #[test]
+    #[ignore = "randomly generated test inputs"]
+    fn fuzz_body_hasher_plain() {
+        fuzz_body_hasher(false);
+    }
+
+    #[test]
+    #[ignore = "randomly generated test inputs"]
+    fn fuzz_body_hasher_fail_on_truncate() {
+        fuzz_body_hasher(true);
+    }
+
+    fn fuzz_body_hasher(fail_on_truncate: bool) {
+        let elems = ["x", "y", " ", "\r\n"];
+        let chunk_len = 0..=4;
+        let chunk_count = 1..=4;
+        let param_count = 1..=6;
+        let limit = 0..=13;
+
+        run_fuzz(1000, fail_on_truncate, &elems, chunk_len, chunk_count, param_count, limit);
+    }
+
+    fn run_fuzz(
+        repetitions: usize,
+        fail_on_truncate: bool,
+        elems: &[&str],
+        chunk_len: RangeInclusive<u8>,
+        chunk_count: RangeInclusive<u8>,
+        param_count: RangeInclusive<u8>,
+        limit: RangeInclusive<u8>,
+    ) {
+        let elems = Slice::new(elems).unwrap();
+
+        let hashes = Slice::new(&[
+            HashAlgorithm::Sha256,
+            #[cfg(feature = "pre-rfc8301")]
+            HashAlgorithm::Sha1,
+        ])
+        .unwrap();
+
+        let canons = Slice::new(&[Simple, Relaxed]).unwrap();
+
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..repetitions {
+            // generate body chunks
+            let mut chunks = vec![];
+            for _ in 0..rng.gen_range(chunk_count.clone()) {
+                let n = rng.gen_range(chunk_len.clone()).into();
+                let s: String = elems.sample_iter(&mut rng).copied().take(n).collect();
+                chunks.push(s);
+            }
+            let chunks: Vec<_> = chunks.iter().map(|s| s.as_str()).collect();
+
+            // generate hasher keys/params
+            let mut params = vec![];
+            for _ in 0..rng.gen_range(param_count.clone()) {
+                let l = if rng.gen_bool(1.0 / 4.0) {
+                    None
+                } else {
+                    Some(rng.gen_range(limit.clone()).into())
+                };
+                let h = hashes.sample(&mut rng);
+                let c = canons.sample(&mut rng);
+                params.push((l, *h, *c));
+            }
+
+            compare_impls(fail_on_truncate, &chunks, &params);
+        }
+    }
+
+    fn compare_impls(fail_on_truncate: bool, chunks: &[&str], params: &[BodyHasherKey]) {
+        // implementation based on BodyHasher
+        let mut hasher = BodyHasherBuilder::new(fail_on_truncate);
+        for &(l, h, c) in params {
+            hasher.register_canonicalization(l, h, c);
+        }
+        let mut hasher = hasher.build();
+
+        for ch in chunks {
+            if let BodyHasherStance::Done = hasher.hash_chunk(ch.as_bytes()) {
+                break;
+            }
+        }
+
+        let results = hasher.finish();
+
+        // alternative implementation
+        let s: String = chunks.iter().copied().collect();
+        let alt_impl = move |(l, h, c)| {
+            let mut bc = BodyCanonicalizer::new(c);
+            let mut result = bc.canonicalize_chunk(s.as_bytes()).into_owned();
+            result.extend(bc.finish().into_owned());
+
+            if let Some(n) = l {
+                if n > result.len() {
+                    return Err(BodyHashError::InsufficientInput);
+                }
+                if fail_on_truncate && n < result.len() {
+                    return Err(BodyHashError::InputTruncated);
+                }
+                result.truncate(n);
+            }
+
+            let hash = crypto::digest(h, &result);
+
+            Ok((hash, result.len()))
+        };
+
+        // compare results
+        for &key in params {
+            let r1 = results.get(&key).unwrap();
+            let r2 = alt_impl(key);
+
+            assert_eq!(
+                r1, &r2,
+                "divergent results for inputs {chunks:?} and {key:?}",
+            );
+        }
     }
 }
