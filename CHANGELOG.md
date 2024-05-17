@@ -7,7 +7,7 @@ minimum supported Rust version being considered breaking changes.
 
 [semantic versioning]: https://doc.rust-lang.org/cargo/reference/semver.html
 
-## 0.2.0-alpha.3 (2024-05-02)
+## 0.2.0 (2024-05-17)
 
 With this release, development has moved from GitLab to the [Codeberg] platform.
 
@@ -42,10 +42,10 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
   blank body. (This change imposed itself after further testing and another
   close reading of the RFC, and follows the example of OpenDKIM.)
 
-[`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/signer/enum.Expiration.html
-[`viadkim::sign`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/signer/fn.sign.html
-[`viadkim::verify`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/verifier/fn.verify.html
-[`tag_list`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/tag_list/index.html
+[`Expiration`]: https://docs.rs/viadkim/0.2.0/viadkim/signer/enum.Expiration.html
+[`viadkim::sign`]: https://docs.rs/viadkim/0.2.0/viadkim/signer/fn.sign.html
+[`viadkim::verify`]: https://docs.rs/viadkim/0.2.0/viadkim/verifier/fn.verify.html
+[`tag_list`]: https://docs.rs/viadkim/0.2.0/viadkim/tag_list/index.html
 
 ## 0.1.1 (2024-04-22)
 
