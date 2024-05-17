@@ -168,6 +168,11 @@ pub struct DkimKeyRecord {
 
 impl DkimKeyRecord {
     /// Parses a DKIM public key record from a tag list.
+    ///
+    /// # Errors
+    ///
+    /// If the tag list does not represent a valid DKIM public key record, an
+    /// error is returned.
     pub fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimKeyRecordError> {
         let mut hash_algorithms = None;
         let mut key_type = None;

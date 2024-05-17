@@ -657,17 +657,12 @@ impl FromStr for Canonicalization {
     type Err = ParseAlgorithmError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if let Some((header, body)) = s.split_once('/') {
-            Self {
-                header: header.parse()?,
-                body: body.parse()?,
-            }
+        let (header, body) = if let Some((header, body)) = s.split_once('/') {
+            (header.parse()?, body.parse()?)
         } else {
-            Self {
-                header: s.parse()?,
-                body: Default::default(),
-            }
-        })
+            (s.parse()?, Default::default())
+        };
+        Ok(Self { header, body })
     }
 }
 
@@ -870,6 +865,11 @@ pub struct DkimSignature {
 
 impl DkimSignature {
     /// Parses a DKIM signature from a tag list.
+    ///
+    /// # Errors
+    ///
+    /// If the tag list does not represent a valid DKIM signature, an error is
+    /// returned.
     pub fn from_tag_list(tag_list: &TagList<'_>) -> Result<Self, DkimSignatureError> {
         Self::from_tag_list_internal(tag_list).map_err(|kind| {
             // The error path. Extract some data in raw form.

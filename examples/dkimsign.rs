@@ -58,10 +58,7 @@ async fn main() {
     let n = io::stdin().read_to_string(&mut msg).await.unwrap();
     assert!(n > 0, "empty message on stdin");
 
-    let msg = msg.split("\r\n")
-        .flat_map(|s| s.split('\n'))
-        .collect::<Vec<_>>()
-        .join("\r\n");
+    let msg: String = msg.lines().flat_map(|s| [s, "\r\n"]).collect();
 
     let (header, body) = msg.split_once("\r\n\r\n").unwrap();
 

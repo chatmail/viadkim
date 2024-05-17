@@ -125,8 +125,7 @@ impl fmt::Debug for KeyType {
 ///
 /// When **feature `pre-rfc8301`**  is enabled, this enum has a second variant
 /// `Sha1` representing the SHA-1 hash algorithm. This variant is hidden behind
-/// a feature flag, because SHA-1 is insecure and its use is strongly
-/// discouraged.
+/// a feature flag, because SHA-1 is insecure and its use is discouraged.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum HashAlgorithm {
     /// The SHA-256 algorithm.
