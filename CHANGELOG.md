@@ -20,7 +20,7 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
   former field `SignRequest::valid_duration`. The new error variant
   `RequestError::ExpirationNotAfterTimestamp` indicates that *t=* and *x=*
   conflict.
-* Canonicalized chunks returned by `BodyCanonicalizer` are now of type `Cow<'_,
+* Canonicalised chunks returned by `BodyCanonicalizer` are now of type `Cow<'_,
   [u8]>` instead of `Vec<u8>`.
 
 ### Added
@@ -38,9 +38,9 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
 
 ### Fixed
 
-* *Relaxed* body canonicalization now produces the empty result for a completely
+* *Relaxed* body canonicalisation now produces the empty result for a completely
   blank body. (This change imposed itself after further testing and another
-  close reading of the RFC, and follows the behaviour of OpenDKIM.)
+  close reading of the RFC, and follows the example of OpenDKIM.)
 
 [`Expiration`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/signer/enum.Expiration.html
 [`viadkim::sign`]: https://docs.rs/viadkim/0.2.0-alpha.3/viadkim/signer/fn.sign.html
@@ -51,8 +51,8 @@ With this release, development has moved from GitLab to the [Codeberg] platform.
 
 ### Fixed
 
-* In both body canonicalization algorithms, a body consisting of only
-  empty/blank lines is now correctly canonicalized to a single CRLF (`\r\n`).
+* In both body canonicalisation algorithms, a body consisting of only
+  empty/blank lines is now correctly canonicalised to a single CRLF (`\r\n`).
 
 ## 0.1.0 (2023-11-24)
 
