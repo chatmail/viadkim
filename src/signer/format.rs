@@ -85,6 +85,7 @@ pub fn is_output_tag(name: &str) -> bool {
 }
 
 /// Selects and sorts the tags to include in the signature.
+#[expect(clippy::type_complexity)]
 fn compute_tag_names<'a>(
     sig: &'a UnsignedDkimSignature,
     tag_order: Option<&(dyn Fn(&str, &str) -> Ordering + Send + Sync)>,
@@ -165,7 +166,12 @@ fn format_without_signature(
     for (index, tag_name) in tag_names.into_iter().enumerate() {
         let last = index == last_index;
 
-        let fmt = Fmt { width, indent, last, ascii };
+        let fmt = Fmt {
+            width,
+            indent,
+            last,
+            ascii,
+        };
 
         match tag_name {
             "a" => format_tag_a(out, i, fmt, sig.algorithm),
@@ -182,7 +188,9 @@ fn format_without_signature(
             "x" => format_tag_x(out, i, fmt, sig.expiration.unwrap()),
             "z" => format_tag_z(out, i, fmt, &sig.copied_headers),
             tag_name => {
-                let (t, v) = sig.ext_tags.iter()
+                let (t, v) = sig
+                    .ext_tags
+                    .iter()
                     .find(|(t, _)| t.as_ref() == tag_name)
                     .unwrap();
                 format_ext_tag(out, i, fmt, t, v);
@@ -351,7 +359,7 @@ fn format_tag_bh(out: &mut String, i: &mut usize, fmt: Fmt<'_>, value: &[u8]) {
     let taglen = 4;
 
     advance_i_initial(out, i, taglen, fmt);
-    *i -= 1;  // backwards again before the ghost character
+    *i -= 1; // backwards again before the ghost character
     out.push_str("bh=");
 
     format_chunks_into_string(out, i, fmt, &value);
@@ -371,12 +379,17 @@ fn format_tag_name_b(
     b_tag_len: usize,
     insertion_i: &mut Option<usize>,
 ) {
-    let Fmt { width, indent, last, .. } = fmt;
+    let Fmt {
+        width,
+        indent,
+        last,
+        ..
+    } = fmt;
 
     // "b=" + 1 char (we prefer at least one additional char behind =)
     let taglen = 3;
     advance_i_initial(out, i, taglen, fmt);
-    *i -= 1;  // backwards again before the ghost character
+    *i -= 1; // backwards again before the ghost character
     out.push_str("b=");
 
     *insertion_i = Some(out.len());
@@ -403,7 +416,12 @@ fn format_tag_name_b(
 fn format_tag_z(out: &mut String, i: &mut usize, fmt: Fmt<'_>, value: &[(FieldName, Box<[u8]>)]) {
     debug_assert!(!value.is_empty());
 
-    let Fmt { width, indent, last, ascii } = fmt;
+    let Fmt {
+        width,
+        indent,
+        last,
+        ascii,
+    } = fmt;
 
     let format_field_value = |value| {
         let encode = if ascii {
@@ -502,7 +520,7 @@ fn advance_i_initial(out: &mut String, i: &mut usize, len: usize, fmt: Fmt<'_>) 
     let Fmt { width, indent, .. } = fmt;
 
     // + 1 for initial SP
-    if *i + len + 1 <= width {
+    if *i + len < width {
         out.push(' ');
         *i += len + 1;
     } else {
@@ -528,7 +546,7 @@ fn format_chunks_into_string(out: &mut String, i: &mut usize, fmt: Fmt<'_>, mut 
         *i += first_chunk.chars().count();
     }
 
-    let chunk_width = width.saturating_sub(indent.len()).max(1);  // no empty chunks
+    let chunk_width = width.saturating_sub(indent.len()).max(1); // no empty chunks
     let chunks = iter::from_fn(|| {
         if s.is_empty() {
             None
@@ -563,7 +581,12 @@ pub fn insert_signature_data(
 ) {
     debug_assert!(insertion_index <= formatted_header.len());
 
-    let fmt = Fmt { width: line_width, indent, last: false /*notused*/, ascii: false /*notused*/};
+    let fmt = Fmt {
+        width: line_width,
+        indent,
+        last: false,  /*notused*/
+        ascii: false, /*notused*/
+    };
 
     let s = util::encode_base64(signature_data);
     // s contains only ASCII now
@@ -592,7 +615,12 @@ mod tests {
     fn format_tag_h_ok() {
         let mut out = String::new();
         let mut i = 0;
-        let fmt = Fmt { width: 10, indent: "  ", last: false, ascii: false };
+        let fmt = Fmt {
+            width: 10,
+            indent: "  ",
+            last: false,
+            ascii: false,
+        };
         let value = [FieldName::new("Ribbit").unwrap()];
 
         format_tag_h(&mut out, &mut i, fmt, &value);
@@ -604,13 +632,21 @@ mod tests {
     #[test]
     fn format_tag_z_ok() {
         let value = [
-            (FieldName::new("From").unwrap(), Box::from(*b" Me <x@gluet.ch>")),
+            (
+                FieldName::new("From").unwrap(),
+                Box::from(*b" Me <x@gluet.ch>"),
+            ),
             (FieldName::new("To").unwrap(), Box::from(*b" \xe2\x99\xa5")),
         ];
 
         let mut out = String::new();
         let mut i = 0;
-        let fmt = Fmt { width: 10, indent: " ", last: false, ascii: false };
+        let fmt = Fmt {
+            width: 10,
+            indent: " ",
+            last: false,
+            ascii: false,
+        };
 
         format_tag_z(&mut out, &mut i, fmt, &value);
 
@@ -622,7 +658,12 @@ mod tests {
     fn format_ext_tag_ok() {
         let mut out = String::new();
         let mut i = 0;
-        let fmt = Fmt { width: 8, indent: " ", last: false, ascii: false };
+        let fmt = Fmt {
+            width: 8,
+            indent: " ",
+            last: false,
+            ascii: false,
+        };
         let name = "ex";
         let value = "123";
 
@@ -633,7 +674,12 @@ mod tests {
 
         let mut out = String::new();
         let mut i = 6;
-        let fmt = Fmt { width: 8, indent: " ", last: false, ascii: false };
+        let fmt = Fmt {
+            width: 8,
+            indent: " ",
+            last: false,
+            ascii: false,
+        };
         let name = "ex";
         let value = "123\r\n\txy";
 

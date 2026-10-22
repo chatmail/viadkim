@@ -54,7 +54,9 @@ async fn sign_roundtrip() {
     let headers = make_header_fields();
     let body = make_body();
 
-    let signing_key = common::read_signing_key("tests/keys/brisbane_private.pem").await.unwrap();
+    let signing_key = common::read_signing_key("tests/keys/brisbane_private.pem")
+        .await
+        .unwrap();
     let mut req = SignRequest::new(
         DomainName::new("example.com").unwrap(),
         Selector::new("brisbane").unwrap(),

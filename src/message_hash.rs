@@ -62,7 +62,6 @@ pub enum BodyHasherStance {
     // Note: the stance does not represent the ultimate truth: `Done` means it
     // is definitely done, but `Interested` is not necessarily true, because the
     // `BodyCanonicalizer`s are stateful and may already have the final pieces.
-
     /// When `Interested` is returned after digesting input, then the client
     /// should feed more inputs to the body hasher, if there are any available
     /// still.
@@ -85,7 +84,8 @@ pub type BodyHasherKey = (Option<usize>, HashAlgorithm, CanonicalizationAlgorith
 /// Panics if the DKIM signature’s `body_length` value does not fit in a
 /// `usize`.
 pub fn body_hasher_key(sig: &DkimSignature) -> BodyHasherKey {
-    let body_len = sig.body_length
+    let body_len = sig
+        .body_length
         .map(|len| len.try_into().expect("integer overflow"));
     let hash_alg = sig.algorithm.hash_algorithm();
     let canon_alg = sig.canonicalization.body;
@@ -95,7 +95,7 @@ pub fn body_hasher_key(sig: &DkimSignature) -> BodyHasherKey {
 /// A builder for body hashers.
 #[derive(Clone)]
 pub struct BodyHasherBuilder {
-    fail_on_truncate: bool,  // truncated inputs must yield InputTruncated
+    fail_on_truncate: bool, // truncated inputs must yield InputTruncated
     registrations: HashSet<BodyHasherKey>,
 }
 
@@ -126,7 +126,9 @@ impl BodyHasherBuilder {
     pub fn build(self) -> BodyHasher {
         use CanonicalizationAlgorithm::*;
 
-        let hashers = self.registrations.into_iter()
+        let hashers = self
+            .registrations
+            .into_iter()
             .map(|key @ (len, hash, _)| (key, (CountingHasher::new(hash, len), false)))
             .collect();
 
@@ -229,7 +231,9 @@ impl BodyHasher {
             let res = if self.fail_on_truncate && truncated {
                 Err(BodyHashError::InputTruncated)
             } else {
-                hasher.finish().map_err(|InsufficientInput| BodyHashError::InsufficientInput)
+                hasher
+                    .finish()
+                    .map_err(|InsufficientInput| BodyHashError::InsufficientInput)
             };
 
             results.insert(key, res);
@@ -352,8 +356,14 @@ mod tests {
         hasher.register_canonicalization(len, hash_alg, canon_alg1);
         let mut hasher = hasher.build();
 
-        assert_eq!(hasher.hash_chunk(b"well  hello \r\n"), BodyHasherStance::Interested);
-        assert_eq!(hasher.hash_chunk(b"\r\n what's up \r"), BodyHasherStance::Interested);
+        assert_eq!(
+            hasher.hash_chunk(b"well  hello \r\n"),
+            BodyHasherStance::Interested
+        );
+        assert_eq!(
+            hasher.hash_chunk(b"\r\n what's up \r"),
+            BodyHasherStance::Interested
+        );
         assert_eq!(hasher.hash_chunk(b"\n\r\n"), BodyHasherStance::Done);
 
         let results = hasher.finish();
@@ -440,7 +450,15 @@ David\r\n\
         let param_count = 1..=6;
         let limit = 0..=13;
 
-        run_fuzz(1000, fail_on_truncate, &elems, chunk_len, chunk_count, param_count, limit);
+        run_fuzz(
+            1000,
+            fail_on_truncate,
+            &elems,
+            chunk_len,
+            chunk_count,
+            param_count,
+            limit,
+        );
     }
 
     fn run_fuzz(

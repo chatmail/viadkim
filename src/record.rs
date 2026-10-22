@@ -151,7 +151,7 @@ impl Error for DkimKeyRecordError {}
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct DkimKeyRecord {
     /// The *h=* tag.
-    pub hash_algorithms: Box<[HashAlgorithm]>,  // non-empty
+    pub hash_algorithms: Box<[HashAlgorithm]>, // non-empty
     /// The *k=* tag.
     pub key_type: KeyType,
     /// The *n=* tag.
@@ -159,7 +159,7 @@ pub struct DkimKeyRecord {
     /// The *p=* tag.
     pub key_data: Box<[u8]>,
     /// The *s=* tag.
-    pub service_types: Box<[ServiceType]>,  // non-empty
+    pub service_types: Box<[ServiceType]>, // non-empty
     /// The *t=* tag.
     pub flags: Box<[SelectorFlag]>,
     /// Additional, unrecognised tag name and value pairs.
@@ -315,8 +315,7 @@ impl FromStr for DkimKeyRecord {
     type Err = DkimKeyRecordError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let tag_list = TagList::from_str(s)
-            .map_err(|_| DkimKeyRecordError::TagListFormat)?;
+        let tag_list = TagList::from_str(s).map_err(|_| DkimKeyRecordError::TagListFormat)?;
 
         Self::from_tag_list(&tag_list)
     }
@@ -343,7 +342,8 @@ mod tests {
 
     #[test]
     fn dkim_key_record_from_tag_list_ok() {
-        let tags = TagList::from_str("v=DKIM1; p=YWJj; s = email; n = highly=20interesting;").unwrap();
+        let tags =
+            TagList::from_str("v=DKIM1; p=YWJj; s = email; n = highly=20interesting;").unwrap();
 
         let dkim_key_record = DkimKeyRecord::from_tag_list(&tags).unwrap();
 

@@ -134,7 +134,9 @@ impl Queries {
         // progress.
         for task in tasks {
             if let VerifyStatus::InProgress = &task.status {
-                let sig = task.signature.as_ref()
+                let sig = task
+                    .signature
+                    .as_ref()
                     .expect("signature of in-progress verification task not available");
 
                 builder.add_lookup(&sig.domain, &sig.selector, task.index);
@@ -234,8 +236,14 @@ mod tests {
 
         let mut iter = txts.into_iter();
         assert_eq!(iter.next().unwrap().unwrap(), "one");
-        assert_eq!(iter.next().unwrap().unwrap_err().kind(), ErrorKind::InvalidData);
-        assert_eq!(iter.next().unwrap().unwrap_err().kind(), ErrorKind::Unsupported);
+        assert_eq!(
+            iter.next().unwrap().unwrap_err().kind(),
+            ErrorKind::InvalidData
+        );
+        assert_eq!(
+            iter.next().unwrap().unwrap_err().kind(),
+            ErrorKind::Unsupported
+        );
 
         time::resume();
     }

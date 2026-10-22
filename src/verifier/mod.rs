@@ -263,8 +263,9 @@ impl VerificationStatus {
                     | DkimKeyRecordError::InvalidServiceType
                     | DkimKeyRecordError::NoSupportedServiceTypes
                     | DkimKeyRecordError::InvalidFlag => DkimResult::Neutral,
-                    DkimKeyRecordError::MisplacedVersionTag
-                    | DkimKeyRecordError::MissingKeyTag => DkimResult::Permerror,
+                    DkimKeyRecordError::MisplacedVersionTag | DkimKeyRecordError::MissingKeyTag => {
+                        DkimResult::Permerror
+                    }
                 },
                 VerificationFailure(error) => match error {
                     crypto::VerificationError::InvalidKey
@@ -619,7 +620,7 @@ struct VerifierTask {
 /// See [`Signer`][crate::signer::Signer] for how the above example message was
 /// signed.
 pub struct Verifier {
-    tasks: Vec<VerifierTask>,  // non-empty
+    tasks: Vec<VerifierTask>, // non-empty
     body_hasher: BodyHasher,
 }
 
@@ -717,7 +718,9 @@ impl Verifier {
             // verify successfully, now must have their body hashes verify, too.
             let final_status = match task.status {
                 VerificationStatus::Success => {
-                    let sig = task.signature.as_ref()
+                    let sig = task
+                        .signature
+                        .as_ref()
                         .expect("successful verification missing signature");
                     verify_body_hash(sig, &bh_results)
                 }
@@ -741,7 +744,8 @@ fn verify_body_hash(sig: &DkimSignature, bh_results: &BodyHashResults) -> Verifi
 
     let key = body_hasher_key(sig);
 
-    let bh_result = bh_results.get(&key)
+    let bh_result = bh_results
+        .get(&key)
         .expect("requested body hash result not available");
 
     match bh_result {

@@ -69,7 +69,11 @@ async fn main() {
 
     for sig in sigs {
         match sig {
-            Ok(SigningOutput { header_name, header_value, .. }) => {
+            Ok(SigningOutput {
+                header_name,
+                header_value,
+                ..
+            }) => {
                 let header_value = header_value.replace("\r\n", "\n");
                 println!("{header_name}:{header_value}");
             }

@@ -16,7 +16,9 @@ async fn basic_sign() {
     let headers = make_header_fields();
     let body = make_body();
 
-    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem").await.unwrap();
+    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem")
+        .await
+        .unwrap();
     let mut request = SignRequest::new(
         DomainName::new("example.com").unwrap(),
         Selector::new("sel").unwrap(),

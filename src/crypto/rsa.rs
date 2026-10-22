@@ -76,7 +76,11 @@ pub fn read_rsa_public_key(
     Ok(key)
 }
 
-pub const MIN_KEY_BITS: usize = if cfg!(feature = "pre-rfc8301") { 512 } else { 1024 };
+pub const MIN_KEY_BITS: usize = if cfg!(feature = "pre-rfc8301") {
+    512
+} else {
+    1024
+};
 
 pub fn get_public_key_size(k: &RsaPublicKey) -> usize {
     k.size() * 8

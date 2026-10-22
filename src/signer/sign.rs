@@ -45,11 +45,15 @@ where
 
     // calculate body hash
 
-    let body_length = request.body_length.to_usize().expect("unsupported integer conversion");
+    let body_length = request
+        .body_length
+        .to_usize()
+        .expect("unsupported integer conversion");
     let hash_alg = algorithm.hash_algorithm();
     let key = (body_length, hash_alg, canonicalization.body);
 
-    let bh_result = bh_results.get(&key)
+    let bh_result = bh_results
+        .get(&key)
         .expect("requested body hash result not available");
 
     let (body_hash, final_len) = match bh_result {
@@ -77,14 +81,19 @@ where
     // select headers
 
     let signed_headers = match &request.header_selection {
-        HeaderSelection::Auto => select_signed_headers(headers).into_iter().cloned().collect(),
+        HeaderSelection::Auto => select_signed_headers(headers)
+            .into_iter()
+            .cloned()
+            .collect(),
         HeaderSelection::Manual(h) => h.clone(),
     };
 
     // signed headers must include From
     assert!(signed_headers.iter().any(|name| *name == "From"));
     // must not attempt to sign header names containing ';' (incompatible with DKIM-Signature)
-    assert!(!signed_headers.iter().any(|name| name.as_ref().contains(';')));
+    assert!(!signed_headers
+        .iter()
+        .any(|name| name.as_ref().contains(';')));
 
     // calculate timestamp and expiration
 
@@ -100,7 +109,9 @@ where
         [].into()
     };
 
-    let ext_tags = request.ext_tags.into_iter()
+    let ext_tags = request
+        .ext_tags
+        .into_iter()
         .map(|(k, v)| (k.into_boxed_str(), v.into_boxed_str()))
         .collect();
 
@@ -121,12 +132,7 @@ where
         ext_tags,
     };
 
-    produce_signature(
-        sig,
-        request.signing_key.as_ref(),
-        &request.format,
-        headers,
-    ).await
+    produce_signature(sig, request.signing_key.as_ref(), &request.format, headers).await
 }
 
 fn select_signed_headers(headers: &HeaderFields) -> Vec<&FieldName> {
@@ -289,7 +295,10 @@ mod tests {
 
         assert_eq!(compute3(T::None, X::After(secs(3)), || 1), (None, Some(4)));
         assert_eq!(compute3(T::Now, X::Never, || 1), (Some(1), None));
-        assert_eq!(compute3(T::Now, X::After(secs(3)), || 1), (Some(1), Some(4)));
+        assert_eq!(
+            compute3(T::Now, X::After(secs(3)), || 1),
+            (Some(1), Some(4))
+        );
         assert_eq!(compute3(T::Now, X::Exact(3), || 1), (Some(1), Some(3)));
         assert_eq!(compute3(T::Now, X::Exact(3), || 3), (Some(2), Some(3)));
     }

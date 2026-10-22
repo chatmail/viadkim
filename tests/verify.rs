@@ -29,7 +29,9 @@ async fn basic_verify() {
     let headers = make_header_fields();
     let body = make_body();
 
-    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem").await.unwrap();
+    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem")
+        .await
+        .unwrap();
     let req = SignRequest::new(
         DomainName::new("example.com").unwrap(),
         Selector::new("sel").unwrap(),
@@ -72,7 +74,9 @@ async fn limited_body_length() {
     let headers = make_header_fields();
     let mut body = make_body();
 
-    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem").await.unwrap();
+    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem")
+        .await
+        .unwrap();
     let mut req = SignRequest::new(
         DomainName::new("example.com").unwrap(),
         Selector::new("sel").unwrap(),

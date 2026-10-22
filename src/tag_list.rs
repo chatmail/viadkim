@@ -70,6 +70,7 @@ impl<'a> TagList<'a> {
     /// # Errors
     ///
     /// If the string is not a valid tag list, an error is returned.
+    #[expect(clippy::should_implement_trait)]
     pub fn from_str(s: &'a str) -> Result<Self, TagListError> {
         match strip_tag_list(s) {
             Some(("", tags)) => {

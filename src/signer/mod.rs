@@ -104,7 +104,7 @@ pub enum HeaderSelection {
 pub fn select_headers<'a, 'b: 'a>(
     headers: &'a HeaderFields,
     mut pred: impl FnMut(&FieldName) -> bool + 'b,
-) -> impl DoubleEndedIterator<Item = &FieldName> + 'a {
+) -> impl DoubleEndedIterator<Item = &'a FieldName> + 'a {
     headers
         .as_ref()
         .iter()
@@ -156,12 +156,7 @@ pub fn default_signed_headers() -> Vec<FieldName> {
 /// ‘examples’ from section 5.4.1.
 pub fn default_unsigned_headers() -> Vec<FieldName> {
     // This set is the same as in OpenDKIM.
-    let names = [
-        "Return-Path",
-        "Received",
-        "Comments",
-        "Keywords",
-    ];
+    let names = ["Return-Path", "Received", "Comments", "Keywords"];
 
     names
         .into_iter()
@@ -240,6 +235,7 @@ pub struct OutputFormat {
 
     /// A comparator applied to tag names that determines the order of the tags
     /// included in the signature.
+    #[expect(clippy::type_complexity)]
     pub tag_order: Option<Box<dyn Fn(&str, &str) -> Ordering + Send + Sync>>,
 
     /// Whether to emit only ASCII, even when internationalised domain name
@@ -373,7 +369,10 @@ fn validate_request<T: AsRef<SigningKey>>(request: &SignRequest<T>) -> Result<()
         if !signed_headers.iter().any(|name| *name == "From") {
             return Err(RequestError::FromHeaderNotSigned);
         }
-        if signed_headers.iter().any(|name| name.as_ref().contains(';')) {
+        if signed_headers
+            .iter()
+            .any(|name| name.as_ref().contains(';'))
+        {
             return Err(RequestError::InvalidSignedFieldName);
         }
     }
@@ -396,7 +395,11 @@ fn validate_request<T: AsRef<SigningKey>>(request: &SignRequest<T>) -> Result<()
         return Err(RequestError::InvalidExtTags);
     }
 
-    if !request.format.header_name.eq_ignore_ascii_case(DKIM_SIGNATURE_NAME) {
+    if !request
+        .format
+        .header_name
+        .eq_ignore_ascii_case(DKIM_SIGNATURE_NAME)
+    {
         return Err(RequestError::InvalidDkimSignatureHeaderName);
     }
 
@@ -592,7 +595,7 @@ struct SignerTask<T> {
 /// See [`Verifier`][crate::verifier::Verifier] for how the above example
 /// message could be verified.
 pub struct Signer<T> {
-    tasks: Vec<SignerTask<T>>,  // non-empty
+    tasks: Vec<SignerTask<T>>, // non-empty
     headers: HeaderFields,
     body_hasher: BodyHasher,
 }
@@ -628,7 +631,10 @@ where
             validate_request(&request)?;
 
             // Register a body hasher request for each signing request.
-            let body_len = request.body_length.to_usize().map_err(|_| RequestError::Overflow)?;
+            let body_len = request
+                .body_length
+                .to_usize()
+                .map_err(|_| RequestError::Overflow)?;
             let hash_alg = request.algorithm.hash_algorithm();
             let canon_alg = request.canonicalization.body;
             body_hasher.register_canonicalization(body_len, hash_alg, canon_alg);
@@ -781,8 +787,14 @@ mod tests {
         assert_eq!(validate_timestamps(T::Now, X::Exact(0)), Err(ENAT));
         assert_eq!(validate_timestamps(T::Now, X::Exact(3)), Ok(()));
         assert_eq!(validate_timestamps(T::Exact(3), X::Never), Ok(()));
-        assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(0))), Err(ZED));
+        assert_eq!(
+            validate_timestamps(T::Exact(3), X::After(secs(0))),
+            Err(ZED)
+        );
         assert_eq!(validate_timestamps(T::Exact(3), X::After(secs(3))), Ok(()));
-        assert_eq!(validate_timestamps(T::Exact(u64::MAX), X::After(secs(3))), Err(ENAT));
+        assert_eq!(
+            validate_timestamps(T::Exact(u64::MAX), X::After(secs(3))),
+            Err(ENAT)
+        );
     }
 }

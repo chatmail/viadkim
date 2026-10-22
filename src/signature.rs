@@ -310,7 +310,6 @@ impl Error for ParseIdentityError {}
 pub struct Identity {
     // Note: because PartialEq and Hash are derived, the local-part will be
     // compared/hashed literally and in case-sensitive fashion.
-
     /// The identity’s local-part, if any.
     pub local_part: Option<Box<str>>,
 
@@ -427,8 +426,24 @@ fn is_dot_string(s: &str) -> bool {
         c.is_ascii_alphanumeric()
             || matches!(
                 c,
-                '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '/' | '=' | '?' | '^' | '_'
-                | '`' | '{' | '|' | '}' | '~'
+                '!' | '#'
+                    | '$'
+                    | '%'
+                    | '&'
+                    | '\''
+                    | '*'
+                    | '+'
+                    | '-'
+                    | '/'
+                    | '='
+                    | '?'
+                    | '^'
+                    | '_'
+                    | '`'
+                    | '{'
+                    | '|'
+                    | '}'
+                    | '~'
             )
             || !c.is_ascii()
     }
@@ -833,7 +848,6 @@ pub struct DkimSignature {
     // unable or unwilling to commit to an individual user name within the
     // domain. It can do so by including the domain part but not the local-part
     // of the identity.’
-
     /// The *a=* tag.
     pub algorithm: SigningAlgorithm,
     /// The *b=* tag.
@@ -845,7 +859,7 @@ pub struct DkimSignature {
     /// The *d=* tag.
     pub domain: DomainName,
     /// The *h=* tag.
-    pub signed_headers: Box<[FieldName]>,  // not empty, no names containing `;`
+    pub signed_headers: Box<[FieldName]>, // not empty, no names containing `;`
     /// The *i=* tag.
     pub identity: Option<Identity>,
     /// The *l=* tag.
@@ -857,7 +871,7 @@ pub struct DkimSignature {
     /// The *x=* tag.
     pub expiration: Option<u64>,
     /// The *z=* tag.
-    pub copied_headers: Box<[(FieldName, Box<[u8]>)]>,  // names may contain `;`
+    pub copied_headers: Box<[(FieldName, Box<[u8]>)]>, // names may contain `;`
     /// Additional, unrecognised tag name and value pairs. (For example, the RFC
     /// 6651 extension tag *r=y*.)
     pub ext_tags: Box<[(Box<str>, Box<str>)]>,
@@ -961,13 +975,15 @@ impl DkimSignature {
                     body_hash = Some(value.into());
                 }
                 "c" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::UnsupportedCanonicalization)?;
 
                     canonicalization = Some(value);
                 }
                 "d" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::InvalidDomain)?;
 
                     domain = Some(value);
@@ -1005,7 +1021,8 @@ impl DkimSignature {
                     identity = Some(value);
                 }
                 "l" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::InvalidBodyLength)?;
 
                     body_length = Some(value);
@@ -1033,19 +1050,22 @@ impl DkimSignature {
                     }
                 }
                 "s" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::InvalidSelector)?;
 
                     selector = Some(value);
                 }
                 "t" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::InvalidTimestamp)?;
 
                     timestamp = Some(value);
                 }
                 "x" => {
-                    let value = value.parse()
+                    let value = value
+                        .parse()
                         .map_err(|_| DkimSignatureErrorKind::InvalidExpiration)?;
 
                     expiration = Some(value);
@@ -1074,7 +1094,8 @@ impl DkimSignature {
         let signature_data = signature_data.ok_or(DkimSignatureErrorKind::MissingSignatureTag)?;
         let body_hash = body_hash.ok_or(DkimSignatureErrorKind::MissingBodyHashTag)?;
         let domain = domain.ok_or(DkimSignatureErrorKind::MissingDomainTag)?;
-        let signed_headers = signed_headers.ok_or(DkimSignatureErrorKind::MissingSignedHeadersTag)?;
+        let signed_headers =
+            signed_headers.ok_or(DkimSignatureErrorKind::MissingSignedHeadersTag)?;
         let selector = selector.ok_or(DkimSignatureErrorKind::MissingSelectorTag)?;
 
         if let Some(id) = &identity {
@@ -1322,10 +1343,7 @@ mod tests {
                         FieldName::new("To").unwrap(),
                         Box::from(*b"joe@example.com")
                     ),
-                    (
-                        FieldName::new("Subject").unwrap(),
-                        Box::from(*b"demo run")
-                    ),
+                    (FieldName::new("Subject").unwrap(), Box::from(*b"demo run")),
                     (
                         FieldName::new("Date").unwrap(),
                         Box::from(*b"July 5, 2005 3:44:08 PM -0700")
@@ -1381,14 +1399,8 @@ mod tests {
                 expiration: Some(1118006938),
                 copied_headers: [].into(),
                 ext_tags: [
-                    (
-                        "y".into(),
-                        "curious\r\n    value".into(),
-                    ),
-                    (
-                        "zz".into(),
-                        "".into(),
-                    ),
+                    ("y".into(), "curious\r\n    value".into(),),
+                    ("zz".into(), "".into(),),
                 ]
                 .into(),
             }

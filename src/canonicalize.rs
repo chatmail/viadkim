@@ -139,8 +139,8 @@ enum CState {
 pub struct BodyCanonicalizer {
     kind: CanonicalizationAlgorithm,
     state: CState,
-    blank_line: bool,  // whether currently on an empty or blank line
-    empty_lines: usize,  // number of empty lines seen
+    blank_line: bool,   // whether currently on an empty or blank line
+    empty_lines: usize, // number of empty lines seen
 }
 
 impl BodyCanonicalizer {
@@ -620,7 +620,8 @@ mod tests {
 
             // Some commentary from §3.4.4.
             // For each line:
-            let s = s.split("\r\n")
+            let s = s
+                .split("\r\n")
                 .map(|s| {
                     let mut sp = false;
                     // ‘a. Reduce whitespace:

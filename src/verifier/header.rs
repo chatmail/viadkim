@@ -136,7 +136,11 @@ impl<'a, 'b> HeaderVerifier<'a, 'b> {
         if tasks.is_empty() {
             None
         } else {
-            Some(Self { headers, config, tasks })
+            Some(Self {
+                headers,
+                config,
+                tasks,
+            })
         }
     }
 
@@ -214,7 +218,10 @@ fn validate_signature(
     #[cfg(feature = "pre-rfc8301")]
     if !config.allow_sha1 {
         if let HashAlgorithm::Sha1 = sig.algorithm.hash_algorithm() {
-            trace!(index, "DKIM-Signature uses unacceptable SHA-1 hash algorithm");
+            trace!(
+                index,
+                "DKIM-Signature uses unacceptable SHA-1 hash algorithm"
+            );
             return Err(VerificationError::Policy(PolicyError::Sha1HashAlgorithm));
         }
     }
@@ -232,7 +239,9 @@ fn validate_signed_headers(
     for h in headers_required_in_signature {
         if !signed_headers.contains(h) {
             trace!(index, "required header not included in DKIM-Signature");
-            return Err(VerificationError::Policy(PolicyError::RequiredHeaderNotSigned));
+            return Err(VerificationError::Policy(
+                PolicyError::RequiredHeaderNotSigned,
+            ));
         }
     }
 
@@ -245,8 +254,13 @@ fn validate_signed_headers(
             .count();
 
         if signed_n < actual_n {
-            trace!(index, "unsigned occurrence of required header in DKIM-Signature");
-            return Err(VerificationError::Policy(PolicyError::UnsignedHeaderOccurrence));
+            trace!(
+                index,
+                "unsigned occurrence of required header in DKIM-Signature"
+            );
+            return Err(VerificationError::Policy(
+                PolicyError::UnsignedHeaderOccurrence,
+            ));
         }
     }
 
@@ -526,9 +540,18 @@ dkim-signature: v=2; d=example.com; s=sel; x=y
 
         let mut iter = tasks.into_iter();
 
-        assert!(matches!(iter.next().unwrap().status, VerifyStatus::Failed(_)));
-        assert!(matches!(iter.next().unwrap().status, VerifyStatus::InProgress));
-        assert!(matches!(iter.next().unwrap().status, VerifyStatus::Failed(_)));
+        assert!(matches!(
+            iter.next().unwrap().status,
+            VerifyStatus::Failed(_)
+        ));
+        assert!(matches!(
+            iter.next().unwrap().status,
+            VerifyStatus::InProgress
+        ));
+        assert!(matches!(
+            iter.next().unwrap().status,
+            VerifyStatus::Failed(_)
+        ));
     }
 
     #[test]
@@ -539,10 +562,16 @@ dkim-signature: v=2; d=example.com; s=sel; x=y
         let exhaustive = field_names(["a", "d"]);
 
         let signed = field_names(["a", "b", "a", "a"]);
-        assert_eq!(validate_signed_headers(0, &headers, &required, &exhaustive, &signed), Ok(()));
+        assert_eq!(
+            validate_signed_headers(0, &headers, &required, &exhaustive, &signed),
+            Ok(())
+        );
 
         let signed = field_names(["a", "b", "a"]);
-        assert_eq!(validate_signed_headers(0, &headers, &required, &exhaustive, &signed), Ok(()));
+        assert_eq!(
+            validate_signed_headers(0, &headers, &required, &exhaustive, &signed),
+            Ok(())
+        );
 
         let signed = field_names(["a", "b"]);
         assert_eq!(
@@ -554,13 +583,15 @@ dkim-signature: v=2; d=example.com; s=sel; x=y
     }
 
     fn header_fields(names: impl IntoIterator<Item = &'static str>) -> Vec<HeaderField> {
-        names.into_iter()
+        names
+            .into_iter()
             .map(|name| (FieldName::new(name).unwrap(), FieldBody::new(*b"").unwrap()))
             .collect()
     }
 
     fn field_names(names: impl IntoIterator<Item = &'static str>) -> Vec<FieldName> {
-        names.into_iter()
+        names
+            .into_iter()
             .map(|name| FieldName::new(name).unwrap())
             .collect()
     }

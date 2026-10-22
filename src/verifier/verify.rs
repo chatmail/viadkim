@@ -106,7 +106,9 @@ fn verify_signature(
                     // Log info about the error cause, and return an opaque
                     // `crypto::VerificationError`.
                     trace!("RSA public key verification failed: {e}");
-                    Err(VerificationError::VerificationFailure(crypto::VerificationError::VerificationFailure))
+                    Err(VerificationError::VerificationFailure(
+                        crypto::VerificationError::VerificationFailure,
+                    ))
                 }
             }
         }
@@ -120,7 +122,9 @@ fn verify_signature(
                     // Log info about the error cause, and return an opaque
                     // `crypto::VerificationError`.
                     trace!("Ed25519 public key verification failed: {e}");
-                    Err(VerificationError::VerificationFailure(crypto::VerificationError::VerificationFailure))
+                    Err(VerificationError::VerificationFailure(
+                        crypto::VerificationError::VerificationFailure,
+                    ))
                 }
             }
         }

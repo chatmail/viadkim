@@ -196,7 +196,7 @@ impl AsRef<[u8]> for FieldBody {
 
 impl fmt::Debug for FieldBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", &BytesDebug(&self.0))
+        write!(f, "{:?}", BytesDebug(&self.0))
     }
 }
 
@@ -304,7 +304,8 @@ impl FromStr for HeaderFields {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut lines = s.lines();
 
-        let first_line = lines.next()
+        let first_line = lines
+            .next()
             .filter(|l| !is_continuation_line(l))
             .ok_or(HeaderFieldError)?;
 

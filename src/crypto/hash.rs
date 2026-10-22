@@ -171,12 +171,18 @@ mod tests {
     fn counting_hasher_rfc6376_examples() {
         // See §3.4.3:
         let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha256, b"\r\n");
-        assert_eq!(util::encode_base64(&hash), "frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=");
+        assert_eq!(
+            util::encode_base64(&hash),
+            "frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY="
+        );
         assert_eq!(len, 2);
 
         // See §3.4.4:
         let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha256, b"");
-        assert_eq!(util::encode_base64(&hash), "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
+        assert_eq!(
+            util::encode_base64(&hash),
+            "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
+        );
         assert_eq!(len, 0);
     }
 

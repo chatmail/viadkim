@@ -107,7 +107,10 @@ pub fn decode(mut s: &str) -> Result<Vec<u8>, QuotedPrintableError> {
             .map(|s| s.trim_start_matches(is_dkim_safe_char))
     }
 
-    enum State { Char, Fws }
+    enum State {
+        Char,
+        Fws,
+    }
 
     let mut state = State::Char;
     let mut result = Vec::with_capacity(s.len());
@@ -187,9 +190,13 @@ pub fn decode_qp_section(s: &str) -> Result<Vec<u8>, QuotedPrintableError> {
 
     while let Some(c) = chars.next() {
         if c == '=' {
-            let c1 = chars.next().filter(|&c| is_hexdig(c))
+            let c1 = chars
+                .next()
+                .filter(|&c| is_hexdig(c))
                 .ok_or(QuotedPrintableError)?;
-            let c2 = chars.next().filter(|&c| is_hexdig(c))
+            let c2 = chars
+                .next()
+                .filter(|&c| is_hexdig(c))
                 .ok_or(QuotedPrintableError)?;
 
             let digit1 = u8::try_from(c1).unwrap();
@@ -266,8 +273,14 @@ mod tests {
 
         assert_eq!(encode(bytes, None), "a=3D|=3B=20b=0A🏠=FEc");
         assert_eq!(encode(bytes, Some('|')), "a=3D=7C=3B=20b=0A🏠=FEc");
-        assert_eq!(encode_ascii_only(bytes, None), "a=3D|=3B=20b=0A=F0=9F=8F=A0=FEc");
-        assert_eq!(encode_ascii_only(bytes, Some('|')), "a=3D=7C=3B=20b=0A=F0=9F=8F=A0=FEc");
+        assert_eq!(
+            encode_ascii_only(bytes, None),
+            "a=3D|=3B=20b=0A=F0=9F=8F=A0=FEc"
+        );
+        assert_eq!(
+            encode_ascii_only(bytes, Some('|')),
+            "a=3D=7C=3B=20b=0A=F0=9F=8F=A0=FEc"
+        );
     }
 
     #[test]
@@ -287,7 +300,8 @@ mod tests {
 
     #[test]
     fn decode_tag_list() {
-        let example = "=20v=20 =3     D=20=FF1=\r\n\t3B我=0D=0A=09a=3Drsa-sha256=3B=20s=3Dbrisbane=3B";
+        let example =
+            "=20v=20 =3     D=20=FF1=\r\n\t3B我=0D=0A=09a=3Drsa-sha256=3B=20s=3Dbrisbane=3B";
         assert_eq!(
             decode(example).unwrap(),
             &b" v = \xff1;\xe6\x88\x91\r\n\ta=rsa-sha256; s=brisbane;"[..]
@@ -297,6 +311,9 @@ mod tests {
     #[test]
     fn decode_qp_section_ok() {
         let example = " wha i☮ ef o=92fj";
-        assert_eq!(decode_qp_section(example), Ok(b" wha i\xe2\x98\xae ef o\x92fj".to_vec()));
+        assert_eq!(
+            decode_qp_section(example),
+            Ok(b" wha i\xe2\x98\xae ef o\x92fj".to_vec())
+        );
     }
 }

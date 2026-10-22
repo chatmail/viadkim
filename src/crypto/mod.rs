@@ -231,8 +231,8 @@ impl SigningKey {
     /// If the string cannot be decoded as one of the supported `SigningKey`
     /// variants, an error is returned.
     pub fn from_pkcs8_pem(s: &str) -> Result<Self, DecodeSigningKeyError> {
-        let (label, doc) = Document::from_pem(s)
-            .map_err(|_| DecodeSigningKeyError::InvalidPemDocument)?;
+        let (label, doc) =
+            Document::from_pem(s).map_err(|_| DecodeSigningKeyError::InvalidPemDocument)?;
 
         PrivateKeyInfo::validate_pem_label(label)
             .map_err(|_| DecodeSigningKeyError::NotAPrivateKeyInfoDocument)?;
@@ -380,7 +380,10 @@ mod tests {
 MCowBQYDK2VwAyEALlL9HXJq+OigwEEqTS7qzyneGP55gTq55NibbL8kSI4=
 -----END PUBLIC KEY-----",
         );
-        assert_eq!(key.unwrap_err(), DecodeSigningKeyError::NotAPrivateKeyInfoDocument);
+        assert_eq!(
+            key.unwrap_err(),
+            DecodeSigningKeyError::NotAPrivateKeyInfoDocument
+        );
 
         let key = SigningKey::from_pkcs8_pem(
             "-----BEGIN PRIVATE KEY-----

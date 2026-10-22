@@ -34,7 +34,9 @@ async fn copied_headers_ok() {
 
     // First, sign the message properly
 
-    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem").await.unwrap();
+    let signing_key = common::read_signing_key("tests/keys/rsa2048.pem")
+        .await
+        .unwrap();
     let mut req = SignRequest::new(
         DomainName::new("example.com").unwrap(),
         Selector::new("sel").unwrap(),
@@ -79,7 +81,10 @@ async fn copied_headers_ok() {
 
     // Verify again, but now providing original headers from z=
 
-    let rest = sig.signature.copied_headers.iter()
+    let rest = sig
+        .signature
+        .copied_headers
+        .iter()
         .map(|(name, value)| (name.clone(), FieldBody::new(&value[..]).unwrap()));
     let headers = common::prepend_header_field(sig.to_header_field(), rest);
 
