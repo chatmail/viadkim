@@ -1,0 +1,14 @@
+[advisories]
+ignore = [
+  # No fix yet. (2026-10-22)
+  "RUSTSEC-2023-0071",
+]
+
+[bans]
+skip = [
+  # tracing is still on syn v2
+  { name = "syn", version = "2.0.119" },
+]
+
+[licenses]
+allow = ["Apache-2.0", "BSD-3-Clause", "GPL-3.0-or-later", "MIT", "Unicode-3.0"]
