@@ -13,7 +13,7 @@ exclude = ["/.gitignore", "/.woodpecker.yml"]
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc"] }
 digest = "0.10.7"
-ed25519-dalek = { version = "2.1.1", features = ["pkcs8"] }
+ed25519-dalek = { version = "3.0.0", features = ["pkcs8"] }
 hickory-resolver = { version = "0.24.0", optional = true }
 idna = "1.1.0"
 pkcs8 = { version = "0.10.2", features = ["pem"] }
