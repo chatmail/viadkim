@@ -15,8 +15,6 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::crypto::HashAlgorithm;
-#[cfg(feature = "pre-rfc8301")]
-use sha1::Sha1;
 use sha2::Sha256;
 use std::{
     error::Error,
@@ -30,11 +28,6 @@ pub fn digest(alg: HashAlgorithm, bytes: impl AsRef<[u8]>) -> Box<[u8]> {
     match alg {
         HashAlgorithm::Sha256 => {
             let hash = Sha256::digest(bytes);
-            Box::from(&hash[..])
-        }
-        #[cfg(feature = "pre-rfc8301")]
-        HashAlgorithm::Sha1 => {
-            let hash = Sha1::digest(bytes);
             Box::from(&hash[..])
         }
     }
@@ -74,8 +67,6 @@ impl CountingHasher {
     pub fn new(alg: HashAlgorithm, length: Option<usize>) -> Self {
         let digest: Box<dyn digest::DynDigest + Send + Sync> = match alg {
             HashAlgorithm::Sha256 => Box::<Sha256>::default(),
-            #[cfg(feature = "pre-rfc8301")]
-            HashAlgorithm::Sha1 => Box::<Sha1>::default(),
         };
 
         Self {
@@ -183,20 +174,6 @@ mod tests {
             util::encode_base64(&hash),
             "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
         );
-        assert_eq!(len, 0);
-    }
-
-    #[cfg(feature = "pre-rfc8301")]
-    #[test]
-    fn counting_hasher_rfc6376_examples_sha1() {
-        // See §3.4.3:
-        let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha1, b"\r\n");
-        assert_eq!(util::encode_base64(&hash), "uoq1oCgLlTqpdDX/iUbLy7J1Wic=");
-        assert_eq!(len, 2);
-
-        // See §3.4.4:
-        let (hash, len) = hash_with_counting_hasher(HashAlgorithm::Sha1, b"");
-        assert_eq!(util::encode_base64(&hash), "2jmj7l5rSw0yVb/vlWAYkK/YBwk=");
         assert_eq!(len, 0);
     }
 

@@ -9,71 +9,6 @@ use viadkim::{
     verifier::{VerificationError, VerificationStatus},
 };
 
-// These tests check behaviour with and without feature pre-rfc8301.
-
-#[cfg(feature = "pre-rfc8301")]
-#[tokio::test]
-async fn key_512_basic() {
-    use viadkim::verifier::{Config, PolicyError};
-
-    let _ = tracing_subscriber::fmt::try_init();
-
-    let headers = make_header_fields();
-    let body = make_body();
-
-    let signing_key = common::read_signing_key("tests/keys/rsa512.pem")
-        .await
-        .unwrap();
-    let request = SignRequest::new(
-        DomainName::new("example.com").unwrap(),
-        Selector::new("sel").unwrap(),
-        SigningAlgorithm::RsaSha256,
-        signing_key,
-    );
-
-    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
-
-    let sig = sigs.into_iter().next().unwrap().unwrap();
-
-    let headers = common::prepend_header_field(sig.to_header_field(), make_header_fields());
-
-    let resolver = MockLookup::new(|name| {
-        Box::pin(async move {
-            match name {
-                "sel._domainkey.example.com." => {
-                    let base64 =
-                        common::read_public_key_file_base64("tests/keys/rsa512pub.pem").await?;
-                    Ok(vec![Ok(format!("v=DKIM1; k=rsa; p={base64}").into())])
-                }
-                _ => Err(ErrorKind::NotFound.into()),
-            }
-        })
-    });
-
-    let config = Default::default();
-
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
-
-    let result = sigs.into_iter().next().unwrap();
-
-    assert_eq!(
-        result.status,
-        VerificationStatus::Failure(VerificationError::Policy(PolicyError::KeyTooSmall))
-    );
-
-    let config = Config {
-        min_key_bits: 512,
-        ..Default::default()
-    };
-
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
-
-    let result = sigs.into_iter().next().unwrap();
-
-    assert_eq!(result.status, VerificationStatus::Success);
-}
-
-#[cfg(not(feature = "pre-rfc8301"))]
 #[tokio::test]
 async fn key_512_basic() {
     use viadkim::crypto;
@@ -121,74 +56,11 @@ async fn key_512_basic() {
     assert_eq!(
         result.status,
         VerificationStatus::Failure(VerificationError::VerificationFailure(
-            crypto::VerificationError::InsufficientKeySize
+            crypto::VerificationError::InvalidKey
         ))
     );
 }
 
-#[cfg(feature = "pre-rfc8301")]
-#[tokio::test]
-async fn sha1_basic() {
-    use viadkim::verifier::{Config, PolicyError};
-
-    let _ = tracing_subscriber::fmt::try_init();
-
-    let headers = make_header_fields();
-    let body = make_body();
-
-    let signing_key = common::read_signing_key("tests/keys/rsa1024.pem")
-        .await
-        .unwrap();
-    let request = SignRequest::new(
-        DomainName::new("example.com").unwrap(),
-        Selector::new("sel").unwrap(),
-        SigningAlgorithm::RsaSha1,
-        signing_key,
-    );
-
-    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
-
-    let sig = sigs.into_iter().next().unwrap().unwrap();
-
-    let headers = common::prepend_header_field(sig.to_header_field(), make_header_fields());
-
-    let resolver = MockLookup::new(|name| {
-        Box::pin(async move {
-            match name {
-                "sel._domainkey.example.com." => {
-                    let base64 =
-                        common::read_public_key_file_base64("tests/keys/rsa1024pub.pem").await?;
-                    Ok(vec![Ok(format!("v=DKIM1; k=rsa; p={base64}").into())])
-                }
-                _ => Err(ErrorKind::NotFound.into()),
-            }
-        })
-    });
-
-    let config = Default::default();
-
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
-
-    let result = sigs.into_iter().next().unwrap();
-
-    assert_eq!(
-        result.status,
-        VerificationStatus::Failure(VerificationError::Policy(PolicyError::Sha1HashAlgorithm))
-    );
-
-    let config = Config {
-        allow_sha1: true,
-        ..Default::default()
-    };
-
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
-
-    let result = sigs.into_iter().next().unwrap();
-
-    assert_eq!(result.status, VerificationStatus::Success);
-}
-
-#[cfg(not(feature = "pre-rfc8301"))]
 #[tokio::test]
 async fn sha1_basic() {
     use viadkim::signature::DkimSignatureErrorKind;

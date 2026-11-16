@@ -202,11 +202,6 @@ impl DkimKeyRecord {
 
                         if s.eq_ignore_ascii_case("sha256") {
                             algs.push(HashAlgorithm::Sha256);
-                        } else {
-                            #[cfg(feature = "pre-rfc8301")]
-                            if s.eq_ignore_ascii_case("sha1") {
-                                algs.push(HashAlgorithm::Sha1);
-                            }
                         }
                     }
 

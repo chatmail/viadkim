@@ -83,9 +83,9 @@ pub use self::{
 };
 
 use crate::util::CanonicalStr;
-use ::rsa::{RsaPrivateKey, RsaPublicKey};
+use ::rsa::{PrivateKey, PublicKey};
 use ed25519_dalek::{SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey};
-use pkcs8::{der::pem::PemLabel, Document, PrivateKeyInfo};
+use pkcs8::{Document, PrivateKeyInfo};
 use std::{
     error::Error,
     fmt::{self, Display, Formatter},
@@ -122,27 +122,16 @@ impl fmt::Debug for KeyType {
 }
 
 /// A hash algorithm.
-///
-/// When **feature `pre-rfc8301`**  is enabled, this enum has a second variant
-/// `Sha1` representing the SHA-1 hash algorithm. This variant is hidden behind
-/// a feature flag, because SHA-1 is insecure and its use is discouraged.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum HashAlgorithm {
     /// The SHA-256 algorithm.
     Sha256,
-    #[cfg(feature = "pre-rfc8301")]
-    /// The SHA-1 algorithm.
-    Sha1,
 }
 
 impl HashAlgorithm {
     /// Returns a vector with the known hash algorithms.
     pub fn all() -> Vec<Self> {
-        vec![
-            Self::Sha256,
-            #[cfg(feature = "pre-rfc8301")]
-            Self::Sha1,
-        ]
+        vec![Self::Sha256]
     }
 }
 
@@ -150,8 +139,6 @@ impl CanonicalStr for HashAlgorithm {
     fn canonical_str(&self) -> &'static str {
         match self {
             Self::Sha256 => "sha256",
-            #[cfg(feature = "pre-rfc8301")]
-            Self::Sha1 => "sha1",
         }
     }
 }
@@ -198,7 +185,7 @@ impl Error for DecodeSigningKeyError {}
 #[derive(Debug)]
 pub enum SigningKey {
     /// The RSA signing key.
-    Rsa(RsaPrivateKey),
+    Rsa(PrivateKey),
     /// The Ed25519 signing key.
     Ed25519(Ed25519SigningKey),
 }
@@ -234,15 +221,16 @@ impl SigningKey {
         let (label, doc) =
             Document::from_pem(s).map_err(|_| DecodeSigningKeyError::InvalidPemDocument)?;
 
-        PrivateKeyInfo::validate_pem_label(label)
-            .map_err(|_| DecodeSigningKeyError::NotAPrivateKeyInfoDocument)?;
+        if label != "PRIVATE KEY" {
+            return Err(DecodeSigningKeyError::NotAPrivateKeyInfoDocument);
+        }
 
         // `PrivateKeyInfo` is not Copy, but could be, therefore nothing wrong
         // with the cloning below.
         let pk = PrivateKeyInfo::try_from(doc.as_bytes())
             .map_err(|_| DecodeSigningKeyError::InvalidKeyData)?;
 
-        if let Ok(k) = RsaPrivateKey::try_from(pk.clone()) {
+        if let Ok(k) = PrivateKey::try_from(pk.clone()) {
             Ok(Self::Rsa(k))
         } else if let Ok(k) = Ed25519SigningKey::try_from(pk.clone()) {
             Ok(Self::Ed25519(k))
@@ -262,7 +250,7 @@ impl AsRef<SigningKey> for SigningKey {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum VerifyingKey {
     /// The RSA verifying key.
-    Rsa(RsaPublicKey),
+    Rsa(PublicKey),
     /// The Ed25519 verifying key.
     Ed25519(Ed25519VerifyingKey),
 }

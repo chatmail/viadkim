@@ -92,21 +92,10 @@ pub struct Config {
     ///
     /// Note that there is a compile-time hard lower bound of acceptable key
     /// sizes, which will lead to failure to validate independent of this
-    /// setting. By default, the absolute minimum key size is 1024; when feature
-    /// `pre-rfc8301` is enabled, the absolute minimum key size is 512.
+    /// setting. By default, the absolute minimum key size is 1024.
     ///
     /// The default is 1024 bits.
     pub min_key_bits: usize,
-
-    /// When this flag is set, signatures using the SHA-1 hash algorithm are
-    /// acceptable.
-    ///
-    /// Note that the SHA-1 hash algorithm is only available when feature
-    /// `pre-rfc8301` is enabled. This setting is only effective when that
-    /// feature is enabled.
-    ///
-    /// The default is false.
-    pub allow_sha1: bool,
 
     /// If a DKIM signature has the *l=* tag, and the body length given in this
     /// tag is less than the actual message body length, the signature will not
@@ -158,7 +147,6 @@ impl Default for Config {
             headers_required_in_signature: vec![],
             headers_forbidden_to_be_unsigned: vec![FieldName::new("From").unwrap()],
             min_key_bits: 1024,
-            allow_sha1: false,
             forbid_unsigned_content: false,
             allow_expired: false,
             allow_timestamp_in_future: false,
