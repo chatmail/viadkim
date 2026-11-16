@@ -215,17 +215,6 @@ fn validate_signature(
         }
     }
 
-    #[cfg(feature = "pre-rfc8301")]
-    if !config.allow_sha1 {
-        if let HashAlgorithm::Sha1 = sig.algorithm.hash_algorithm() {
-            trace!(
-                index,
-                "DKIM-Signature uses unacceptable SHA-1 hash algorithm"
-            );
-            return Err(VerificationError::Policy(PolicyError::Sha1HashAlgorithm));
-        }
-    }
-
     Ok(())
 }
 

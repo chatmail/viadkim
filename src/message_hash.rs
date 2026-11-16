@@ -407,26 +407,6 @@ David\r\n\
         );
     }
 
-    #[cfg(feature = "pre-rfc8301")]
-    #[test]
-    fn body_hasher_reuse_canonicalized_chunk() {
-        let key1 @ (len, hash_alg1, canon_alg1) = key_relaxed();
-        let key2 @ (_, hash_alg2, canon_alg2) = (None, HashAlgorithm::Sha1, Relaxed);
-
-        let mut hasher = BodyHasherBuilder::new(false);
-        hasher.register_canonicalization(len, hash_alg1, canon_alg1);
-        hasher.register_canonicalization(len, hash_alg2, canon_alg2);
-        let mut hasher = hasher.build();
-
-        assert_eq!(hasher.hash_chunk(b"abc \r\n"), BodyHasherStance::Interested);
-
-        let results = hasher.finish();
-
-        let res1 = results.get(&key1).unwrap();
-        let res2 = results.get(&key2).unwrap();
-        assert_eq!(res1.as_ref().unwrap().1, res2.as_ref().unwrap().1);
-    }
-
     fn sha256_digest(msg: &[u8]) -> Box<[u8]> {
         crypto::digest(HashAlgorithm::Sha256, msg)
     }
@@ -472,12 +452,7 @@ David\r\n\
     ) {
         let elems = Slice::new(elems).unwrap();
 
-        let hashes = Slice::new(&[
-            HashAlgorithm::Sha256,
-            #[cfg(feature = "pre-rfc8301")]
-            HashAlgorithm::Sha1,
-        ])
-        .unwrap();
+        let hashes = Slice::new(&[HashAlgorithm::Sha256]).unwrap();
 
         let canons = Slice::new(&[Simple, Relaxed]).unwrap();
 

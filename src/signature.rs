@@ -478,18 +478,12 @@ impl Display for ParseAlgorithmError {
 impl Error for ParseAlgorithmError {}
 
 /// A signing algorithm.
-///
-/// When **feature `pre-rfc8301`**  is enabled, this enum has a third variant
-/// `RsaSha1` representing the *rsa-sha1* signing algorithm.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum SigningAlgorithm {
     /// The *rsa-sha256* signing algorithm.
     RsaSha256,
     /// The *ed25519-sha256* signing algorithm.
     Ed25519Sha256,
-    #[cfg(feature = "pre-rfc8301")]
-    /// The *rsa-sha1* signing algorithm.
-    RsaSha1,
 }
 
 impl SigningAlgorithm {
@@ -499,10 +493,6 @@ impl SigningAlgorithm {
         match (key_type, hash_alg) {
             (KeyType::Rsa, HashAlgorithm::Sha256) => Some(Self::RsaSha256),
             (KeyType::Ed25519, HashAlgorithm::Sha256) => Some(Self::Ed25519Sha256),
-            #[cfg(feature = "pre-rfc8301")]
-            (KeyType::Rsa, HashAlgorithm::Sha1) => Some(Self::RsaSha1),
-            #[cfg(feature = "pre-rfc8301")]
-            _ => None,
         }
     }
 
@@ -511,8 +501,6 @@ impl SigningAlgorithm {
         match self {
             Self::RsaSha256 => KeyType::Rsa,
             Self::Ed25519Sha256 => KeyType::Ed25519,
-            #[cfg(feature = "pre-rfc8301")]
-            Self::RsaSha1 => KeyType::Rsa,
         }
     }
 
@@ -520,8 +508,6 @@ impl SigningAlgorithm {
     pub fn hash_algorithm(self) -> HashAlgorithm {
         match self {
             Self::RsaSha256 | Self::Ed25519Sha256 => HashAlgorithm::Sha256,
-            #[cfg(feature = "pre-rfc8301")]
-            Self::RsaSha1 => HashAlgorithm::Sha1,
         }
     }
 }
@@ -531,8 +517,6 @@ impl CanonicalStr for SigningAlgorithm {
         match self {
             Self::RsaSha256 => "rsa-sha256",
             Self::Ed25519Sha256 => "ed25519-sha256",
-            #[cfg(feature = "pre-rfc8301")]
-            Self::RsaSha1 => "rsa-sha1",
         }
     }
 }
@@ -558,10 +542,6 @@ impl FromStr for SigningAlgorithm {
         } else if s.eq_ignore_ascii_case("ed25519-sha256") {
             Ok(Self::Ed25519Sha256)
         } else {
-            #[cfg(feature = "pre-rfc8301")]
-            if s.eq_ignore_ascii_case("rsa-sha1") {
-                return Ok(Self::RsaSha1);
-            }
             Err(ParseAlgorithmError)
         }
     }
@@ -738,8 +718,7 @@ pub enum DkimSignatureErrorKind {
     TagListFormat,
     /// Incompatible DKIM version.
     IncompatibleVersion,
-    /// Use of a historic signature algorithm. (Note: only used when feature
-    /// `pre-rfc8301` is not enabled.)
+    /// Use of a historic signature algorithm.
     HistoricAlgorithm,
     /// The algorithm in *a=* is not supported.
     UnsupportedAlgorithm,
@@ -943,7 +922,6 @@ impl DkimSignature {
                 }
                 "a" => {
                     let value = value.parse().map_err(|_| {
-                        #[cfg(not(feature = "pre-rfc8301"))]
                         if value.eq_ignore_ascii_case("rsa-sha1") {
                             // Note: special-case "rsa-sha1" as recognised but
                             // no longer supported (RFC 8301).

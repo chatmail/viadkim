@@ -1,9 +1,3 @@
-[advisories]
-ignore = [
-  # No fix yet. (2026-10-22)
-  "RUSTSEC-2023-0071",
-]
-
 [bans]
 skip = [
   # tracing is still on syn v2

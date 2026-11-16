@@ -17,10 +17,8 @@
 use crate::crypto::HashAlgorithm;
 use rsa::{
     pkcs1::DecodeRsaPublicKey, pkcs8::DecodePublicKey, traits::PublicKeyParts, Pkcs1v15Sign,
-    RsaPrivateKey, RsaPublicKey,
+    PrivateKey, PublicKey,
 };
-#[cfg(feature = "pre-rfc8301")]
-use sha1::Sha1;
 use sha2::Sha256;
 use std::error::Error;
 
@@ -34,13 +32,11 @@ use std::error::Error;
 /// `SigningError::SigningFailure` should be used.
 pub fn sign_rsa(
     hash_alg: HashAlgorithm,
-    private_key: &RsaPrivateKey,
+    private_key: &PrivateKey,
     msg: &[u8],
 ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
     let result = match hash_alg {
         HashAlgorithm::Sha256 => private_key.sign(Pkcs1v15Sign::new::<Sha256>(), msg)?,
-        #[cfg(feature = "pre-rfc8301")]
-        HashAlgorithm::Sha1 => private_key.sign(Pkcs1v15Sign::new::<Sha1>(), msg)?,
     };
 
     Ok(result)
@@ -61,28 +57,24 @@ pub fn sign_rsa(
 /// variant `VerificationError::InvalidKey` should be used.
 pub fn read_rsa_public_key(
     key_data: &[u8],
-) -> Result<RsaPublicKey, Box<dyn Error + Send + Sync + 'static>> {
+) -> Result<PublicKey, Box<dyn Error + Send + Sync + 'static>> {
     // First try reading the bytes as *SubjectPublicKeyInfo* format
     // (the de facto procedure, as shown in examples in appendix C of RFC 6376).
     // Then try reading the bytes as *RSAPublicKey* format
     // (what was actually specified in RFC 6376).
     // See the module comment in `viadkim::crypto`.
 
-    let key = RsaPublicKey::from_public_key_der(key_data).or_else(|e| {
+    let key = PublicKey::from_public_key_der(key_data).or_else(|e| {
         // Supply initial error if fallback fails, too.
-        RsaPublicKey::from_pkcs1_der(key_data).map_err(|_| e)
+        PublicKey::from_pkcs1_der(key_data).map_err(|_| e)
     })?;
 
     Ok(key)
 }
 
-pub const MIN_KEY_BITS: usize = if cfg!(feature = "pre-rfc8301") {
-    512
-} else {
-    1024
-};
+pub const MIN_KEY_BITS: usize = 1024;
 
-pub fn get_public_key_size(k: &RsaPublicKey) -> usize {
+pub fn get_public_key_size(k: &PublicKey) -> usize {
     k.size() * 8
 }
 
@@ -95,7 +87,7 @@ pub fn get_public_key_size(k: &RsaPublicKey) -> usize {
 /// [`VerificationError`][crate::crypto::VerificationError] is desired, the
 /// variant `VerificationError::VerificationFailure` should be used.
 pub fn verify_rsa(
-    public_key: &RsaPublicKey,
+    public_key: &PublicKey,
     hash_alg: HashAlgorithm,
     msg: &[u8],
     signature_data: &[u8],
@@ -103,10 +95,6 @@ pub fn verify_rsa(
     match hash_alg {
         HashAlgorithm::Sha256 => {
             public_key.verify(Pkcs1v15Sign::new::<Sha256>(), msg, signature_data)?;
-        }
-        #[cfg(feature = "pre-rfc8301")]
-        HashAlgorithm::Sha1 => {
-            public_key.verify(Pkcs1v15Sign::new::<Sha1>(), msg, signature_data)?;
         }
     }
 
@@ -152,7 +140,7 @@ CQ8od0/ltBQAeX9B2QXumw==
 
     #[test]
     fn read_rsa_public_key_spki() {
-        let privkey = RsaPrivateKey::from_pkcs8_pem(PRIVKEY_PEM).unwrap();
+        let privkey = PrivateKey::from_pkcs8_pem(PRIVKEY_PEM).unwrap();
 
         // Output of:
         // openssl pkey -in key.pem -pubout -outform DER | openssl base64 -A
@@ -169,12 +157,12 @@ xQIDAQAB";
         let pubkey = read_rsa_public_key(&pubkey_bytes).unwrap();
 
         assert_eq!(get_public_key_size(&pubkey), 2048);
-        assert_eq!(pubkey, RsaPublicKey::from(privkey));
+        assert_eq!(pubkey, PublicKey::from(privkey));
     }
 
     #[test]
     fn read_rsa_public_key_rsa() {
-        let privkey = RsaPrivateKey::from_pkcs8_pem(PRIVKEY_PEM).unwrap();
+        let privkey = PrivateKey::from_pkcs8_pem(PRIVKEY_PEM).unwrap();
 
         // Output of:
         // openssl pkey -in key.pem -pubout -out pubkey.pem
@@ -191,6 +179,6 @@ Src/v2HTRMYeeBb7fjFC50ImvxjtmFUIxQIDAQAB";
         let pubkey = read_rsa_public_key(&pubkey_bytes).unwrap();
 
         assert_eq!(get_public_key_size(&pubkey), 2048);
-        assert_eq!(pubkey, RsaPublicKey::from(privkey));
+        assert_eq!(pubkey, PublicKey::from(privkey));
     }
 }
