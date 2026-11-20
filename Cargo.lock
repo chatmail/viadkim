@@ -91,6 +91,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmdkim"
+version = "0.2.0"
+dependencies = [
+ "base64ct",
+ "digest",
+ "ed25519-dalek",
+ "idna",
+ "n0-dns-resolver",
+ "pkcs8",
+ "rand 0.8.8",
+ "rsa",
+ "sha2",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "cmov"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1459,24 +1477,6 @@ name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
-
-[[package]]
-name = "viadkim"
-version = "0.2.0"
-dependencies = [
- "base64ct",
- "digest",
- "ed25519-dalek",
- "idna",
- "n0-dns-resolver",
- "pkcs8",
- "rand 0.8.8",
- "rsa",
- "sha2",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "walkdir"

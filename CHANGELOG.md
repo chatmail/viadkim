@@ -1,4 +1,4 @@
-# viadkim changelog
+# cmdkim changelog
 
 All notable, publicly visible changes are listed in this changelog.
 
@@ -6,6 +6,16 @@ This project follows Rust-flavoured [semantic versioning], with changes to the
 minimum supported Rust version being considered breaking changes.
 
 [semantic versioning]: https://doc.rust-lang.org/cargo/reference/semver.html
+
+## Unreleased
+
+
+# viadkim changelog
+
+The cmdkim library is a 2026 fork of [viadkim].
+Changelog below has been preserved from the original project.
+
+[viadkim]: https://codeberg.org/glts/viadkim
 
 ## 0.2.0 (2024-05-17)
 

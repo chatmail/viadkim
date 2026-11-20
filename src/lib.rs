@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -36,7 +36,7 @@
 //! # Usage
 //!
 //! The types [`Signer`] and [`Verifier`] provide the entry points to signing
-//! and verifying with viadkim.
+//! and verifying with cmdkim.
 //!
 //! See the examples for `Signer` and `Verifier` for basic usage.
 //!

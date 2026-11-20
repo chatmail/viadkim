@@ -1,13 +1,13 @@
 pub mod common;
 
-use common::MockLookup;
-use std::{io::ErrorKind, str::FromStr};
-use viadkim::{
+use cmdkim::{
     header::{FieldBody, FieldName, HeaderFields},
     signature::{DomainName, Selector, SigningAlgorithm},
     signer::{BodyLength, SignRequest},
     verifier::VerificationStatus,
 };
+use common::MockLookup;
+use std::{io::ErrorKind, str::FromStr};
 
 #[tokio::test]
 async fn basic_verify() {
@@ -39,7 +39,7 @@ async fn basic_verify() {
         signing_key,
     );
 
-    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
+    let sigs = cmdkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -47,7 +47,7 @@ async fn basic_verify() {
 
     let config = Default::default();
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -86,7 +86,7 @@ async fn limited_body_length() {
 
     req.body_length = BodyLength::MessageContent;
 
-    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
+    let sigs = cmdkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -96,7 +96,7 @@ async fn limited_body_length() {
 
     body.extend(b"\r\n-- trailing content, ignored --\r\n");
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 

@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -20,7 +20,7 @@
 //! See RFC 5322, section 2.2. The obsolete syntax (eg header field names with
 //! trailing whitespace before the colon) is not supported.
 //!
-//! API documentation in viadkim uses the term *header* in various places.
+//! API documentation in cmdkim uses the term *header* in various places.
 //! *Header* is an ambiguous term: it can refer to the entire header section
 //! (‘the header is separated from the body by an empty line’), or to an entry
 //! in the header section, ie a header field (‘a header that spans multiple
@@ -62,13 +62,13 @@ impl Error for HeaderFieldError {}
 /// # Examples
 ///
 /// ```
-/// use viadkim::header::FieldName;
+/// use cmdkim::header::FieldName;
 ///
 /// let name = FieldName::new("From")?;
 ///
 /// assert_eq!(name, "from");
 /// assert_ne!(name.as_ref(), "from");
-/// # Ok::<_, viadkim::header::HeaderFieldError>(())
+/// # Ok::<_, cmdkim::header::HeaderFieldError>(())
 /// ```
 #[derive(Clone, Eq)]
 pub struct FieldName(Box<str>);
@@ -84,7 +84,7 @@ impl FieldName {
     /// # Examples
     ///
     /// ```
-    /// use viadkim::header::FieldName;
+    /// use cmdkim::header::FieldName;
     ///
     /// assert!(FieldName::new("From").is_ok());
     /// assert!(FieldName::new("From!?#$;").is_ok());
@@ -155,7 +155,7 @@ impl FieldBody {
     /// # Examples
     ///
     /// ```
-    /// use viadkim::header::FieldBody;
+    /// use cmdkim::header::FieldBody;
     ///
     /// assert!(FieldBody::new(*b" Hey!").is_ok());
     /// assert!(FieldBody::new(*b" Hey\nyou!").is_err());
@@ -289,7 +289,7 @@ impl FromStr for HeaderFields {
     /// # Examples
     ///
     /// ```
-    /// use viadkim::header::HeaderFields;
+    /// use cmdkim::header::HeaderFields;
     ///
     /// let headers: HeaderFields = "\
     /// Date: Thu, 22 Jun 2023 09:29:22 +0200
@@ -300,7 +300,7 @@ impl FromStr for HeaderFields {
     /// ".parse()?;
     ///
     /// assert_eq!(headers.as_ref().len(), 4);
-    /// # Ok::<_, viadkim::header::HeaderFieldError>(())
+    /// # Ok::<_, cmdkim::header::HeaderFieldError>(())
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut lines = s.lines();

@@ -1,17 +1,17 @@
 pub mod common;
 
-use common::MockLookup;
-use std::{io::ErrorKind, str::FromStr};
-use viadkim::{
+use cmdkim::{
     header::{FieldBody, FieldName, HeaderFields},
     signature::{DomainName, Selector, SigningAlgorithm},
     signer::SignRequest,
     verifier::{VerificationError, VerificationStatus},
 };
+use common::MockLookup;
+use std::{io::ErrorKind, str::FromStr};
 
 #[tokio::test]
 async fn key_512_basic() {
-    use viadkim::crypto;
+    use cmdkim::crypto;
 
     let _ = tracing_subscriber::fmt::try_init();
 
@@ -28,7 +28,7 @@ async fn key_512_basic() {
         signing_key,
     );
 
-    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
+    let sigs = cmdkim::sign(headers, &body, [request]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 
@@ -49,7 +49,7 @@ async fn key_512_basic() {
 
     let config = Default::default();
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -63,7 +63,7 @@ async fn key_512_basic() {
 
 #[tokio::test]
 async fn sha1_basic() {
-    use viadkim::signature::DkimSignatureErrorKind;
+    use cmdkim::signature::DkimSignatureErrorKind;
 
     let _ = tracing_subscriber::fmt::try_init();
 
@@ -96,7 +96,7 @@ async fn sha1_basic() {
 
     let config = Default::default();
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 

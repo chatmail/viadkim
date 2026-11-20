@@ -1,6 +1,6 @@
-# viadkim
+# cmdkim
 
-The **viadkim** library contains a complete implementation of *DomainKeys
+The **cmdkim** library contains a complete implementation of *DomainKeys
 Identified Mail* (DKIM). DKIM is specified in [RFC 6376].
 
 This library provides both high-level APIs for signing and verifying email
@@ -16,7 +16,7 @@ used to guide development.
 
 ## Design objectives
 
-The goal of viadkim is to provide a free DKIM library suitable for long-lived
+The goal of cmdkim is to provide a free DKIM library suitable for long-lived
 mail server processes, with strong RFC conformance guarantees.
 
 Of particular importance is that the library should be **efficient**. Some items
@@ -26,7 +26,7 @@ and without the whole message being in memory at once; or sharing message body
 canonicalisation results among signature evaluation tasks.
 
 Of equal importance is **resilience** and **compatibility in handling inputs**.
-Notably, internationalised email is fully supported in viadkim. But also
+Notably, internationalised email is fully supported in cmdkim. But also
 malformed inputs that do occur in practice, such as stray Latin 1 bytes in
 headers are handled transparently. Generally, all inputs are handled gracefully,
 and similarly all outputs should be well-formed.
@@ -44,9 +44,9 @@ adopted.
 
 ## Usage
 
-This is a [Rust] library. Include [viadkim] in `Cargo.toml` as usual.
+This is a [Rust] library. Include [cmdkim] in `Cargo.toml` as usual.
 
-Two structs provide the entry points to DKIM processing with viadkim:
+Two structs provide the entry points to DKIM processing with cmdkim:
 
 * [`Signer`] for signing a message
 * [`Verifier`] for verifying a message’s signatures
@@ -56,10 +56,10 @@ See the [API documentation] for usage instructions.
 The minimum supported Rust version is 1.67.0.
 
 [Rust]: https://www.rust-lang.org
-[viadkim]: https://crates.io/crates/viadkim
-[`Signer`]: https://docs.rs/viadkim/0.2.0/viadkim/signer/struct.Signer.html
-[`Verifier`]: https://docs.rs/viadkim/0.2.0/viadkim/verifier/struct.Verifier.html
-[API documentation]: https://docs.rs/viadkim
+[cmdkim]: https://crates.io/crates/cmdkim
+[`Signer`]: https://docs.rs/cmdkim/0.2.0/cmdkim/signer/struct.Signer.html
+[`Verifier`]: https://docs.rs/cmdkim/0.2.0/cmdkim/verifier/struct.Verifier.html
+[API documentation]: https://docs.rs/cmdkim
 
 ## Examples
 
@@ -89,16 +89,19 @@ cargo run --features n0-dns-resolver \
   --example dkimverify < /path/to/msg-to-verify
 ```
 
-In both examples, export the environment variable `RUST_LOG=viadkim=trace` to
+In both examples, export the environment variable `RUST_LOG=cmdkim=trace` to
 enable the library’s trace logging. Edit the examples to experiment with various
 configuration options.
 
-For interactive use of the viadkim library, please see the command-line utility
+For interactive use of the cmdkim library, please see the command-line utility
 [dkimdo].
 
 [dkimdo]: https://crates.io/crates/dkimdo
 
 ## Acknowledgements
+
+The cmdkim library is a 2026 fork of [viadkim],
+originally developed by David Bürgin.
 
 While this is an independent implementation of DKIM that was created from
 scratch, the author wishes to give credit to the [OpenDKIM] project. As a
@@ -106,6 +109,7 @@ long-time user of OpenDKIM, the author couldn’t help adopting some of its desi
 ideas. One example is the ‘staged’ processing approach, which does not require
 that the whole message reside in memory at once.
 
+[viadkim]: https://codeberg.org/glts/viadkim
 [OpenDKIM]: http://opendkim.org
 
 ## Licence

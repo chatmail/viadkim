@@ -1,3 +1,8 @@
+use cmdkim::{
+    crypto::SigningKey,
+    header::{HeaderField, HeaderFields},
+    verifier::LookupTxt,
+};
 use std::{
     future::Future,
     io::{self, ErrorKind},
@@ -6,11 +11,6 @@ use std::{
     sync::Arc,
 };
 use tokio::fs;
-use viadkim::{
-    crypto::SigningKey,
-    header::{HeaderField, HeaderFields},
-    verifier::LookupTxt,
-};
 
 type LookupOutput = Vec<io::Result<Vec<u8>>>;
 type LookupFuture<'a> = Pin<Box<dyn Future<Output = io::Result<LookupOutput>> + Send + 'a>>;

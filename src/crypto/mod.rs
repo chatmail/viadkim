@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -42,7 +42,7 @@
 //! Several errata describing this problem in different wording have been filed
 //! over the years ([2011], [2021], [2022]).
 //!
-//! Because of this situation, viadkim first tries reading the public key in DNS
+//! Because of this situation, cmdkim first tries reading the public key in DNS
 //! in the (de-facto standard) SubjectPublicKeyInfo format. If this fails it
 //! falls back to trying reading the public key in the (de-iure standard)
 //! RSAPublicKey format.
@@ -62,7 +62,7 @@
 //! format being the default output from OpenSSL, it is not unlikely that on
 //! some sites this is the format being used for the key installed in DNS.
 //!
-//! Because of this situation, viadkim first tries reading the public key in DNS
+//! Because of this situation, cmdkim first tries reading the public key in DNS
 //! as the Base64-encoded raw bytes of an Ed25519 public key. If this fails, it
 //! falls back to trying reading the public key in the (non-standard)
 //! SubjectPublicKeyInfo format.

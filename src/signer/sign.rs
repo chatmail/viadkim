@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -161,7 +161,7 @@ fn compute_t_and_x(
         Expiration::Exact(x) => Some(x),
     };
 
-    // On request, viadkim will produce unrealistically large t= and x= values,
+    // On request, cmdkim will produce unrealistically large t= and x= values,
     // but never combinations that are invalid. To this end, and keeping in mind
     // that we ruled out some invalid inputs in SignRequest validation, now make
     // sure t= is before x=.
