@@ -1,6 +1,0 @@
-steps:
-  test:
-    image: rust
-    commands:
-      - cargo test --verbose --features hickory-resolver --all-targets
-      - cargo test --verbose --features hickory-resolver --doc
