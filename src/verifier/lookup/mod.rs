@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License along with
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(feature = "hickory-resolver")]
-mod hickory_resolver;
+#[cfg(feature = "n0-dns-resolver")]
+mod n0_dns_resolver;
 
+use std::sync::Arc;
 use std::{future::Future, io};
 
 /// A trait for looking up DNS TXT records containing DKIM public key records.
@@ -31,8 +32,8 @@ use std::{future::Future, io};
 /// The inner, per-record `std::io::Error` can be used to signal errors
 /// (parsing, encoding) with individual TXT records.
 ///
-/// When **feature `hickory-resolver`** is enabled, an implementation of this
-/// trait for the Hickory DNS `TokioAsyncResolver` is provided.
+/// When **feature `n0-dns-resolver`** is enabled, an implementation of this
+/// trait for the n0 DNS `DnsResolver` is provided.
 pub trait LookupTxt: Send + Sync {
     /// The answer consisting of TXT records found.
     type Answer: IntoIterator<Item = io::Result<Vec<u8>>>;
@@ -51,4 +52,23 @@ pub trait LookupTxt: Send + Sync {
     /// Note that according to RFC 6376, the final answer is expected to contain
     /// only a single TXT record, but DNS allows more than one.
     fn lookup_txt(&self, domain: &str) -> Self::Query<'_>;
+}
+
+// Makes it possible to pass `Arc<T>` to viadkim::verify
+// and other functions taking &T where T: LookupTxt + Clone,
+// in case of a resolver type `T` that doesn't implement `Clone`.
+// (e.g. n0's `DnsResolver`)
+impl<T> LookupTxt for Arc<T>
+where
+    T: LookupTxt,
+{
+    type Answer = T::Answer;
+    type Query<'a>
+        = T::Query<'a>
+    where
+        T: 'a;
+
+    fn lookup_txt(&self, domain: &str) -> Self::Query<'_> {
+        self.as_ref().lookup_txt(domain)
+    }
 }

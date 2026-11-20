@@ -1,6 +1,7 @@
 pub mod common;
 
-use hickory_resolver::TokioAsyncResolver;
+use n0_dns_resolver::DnsResolver;
+use std::sync::Arc;
 use viadkim::verifier::{Config, VerificationStatus};
 
 /// Verify my signatures on a real message.
@@ -9,7 +10,7 @@ use viadkim::verifier::{Config, VerificationStatus};
 async fn live_verify() {
     let _ = tracing_subscriber::fmt::try_init();
 
-    let resolver = TokioAsyncResolver::tokio(Default::default(), Default::default());
+    let resolver = Arc::new(DnsResolver::system_with_fallback());
 
     let msg = make_msg();
 

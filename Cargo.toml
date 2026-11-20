@@ -14,7 +14,7 @@ exclude = ["/.gitignore", "/.woodpecker.yml"]
 base64ct = { version = "1.6.0", features = ["alloc"] }
 digest = "0.11"
 ed25519-dalek = { version = "3.0", features = ["pkcs8"] }
-hickory-resolver = { version = "0.24.0", optional = true }
+n0-dns-resolver = { version = "0.1", default-features = false, optional = true }
 idna = "1.1.0"
 pkcs8 = { version = "0.11", features = ["pem"] }
 rsa = { version = "0.10", features = ["pkcs1v15"] }
@@ -35,11 +35,11 @@ tracing-subscriber = "0.3.18"
 
 [[test]]
 name = "live"
-required-features = ["hickory-resolver"]
+required-features = ["n0-dns-resolver"]
 
 [[example]]
 name = "dkimverify"
-required-features = ["hickory-resolver"]
+required-features = ["n0-dns-resolver"]
 
 [package.metadata.docs.rs]
-features = ["hickory-resolver"]
+features = ["n0-dns-resolver"]

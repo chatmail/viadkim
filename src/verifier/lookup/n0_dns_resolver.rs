@@ -15,31 +15,33 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::LookupTxt;
-use hickory_resolver::{error::ResolveErrorKind, Name, TokioAsyncResolver};
+use n0_dns_resolver::DnsResolver;
 use std::{
     future::Future,
     io::{self, ErrorKind},
     pin::Pin,
 };
 
-impl LookupTxt for TokioAsyncResolver {
+impl LookupTxt for DnsResolver {
     type Answer = Box<dyn Iterator<Item = io::Result<Vec<u8>>>>;
     type Query<'a> = Pin<Box<dyn Future<Output = io::Result<Self::Answer>> + Send + 'a>>;
 
     fn lookup_txt(&self, domain: &str) -> Self::Query<'_> {
-        let name = Name::from_ascii(domain);
+        let name = domain.to_owned();
 
         Box::pin(async move {
-            let name = name.map_err(|_| ErrorKind::InvalidInput)?;
+            let lookup = self.lookup_txt(name).await.map_err(io::Error::other)?;
 
-            let lookup = self.txt_lookup(name).await.map_err(|e| match e.kind() {
-                ResolveErrorKind::NoRecordsFound { .. } => io::Error::from(ErrorKind::NotFound),
-                _ => e.into(),
-            })?;
+            if lookup.is_empty() {
+                return Err(io::Error::from(ErrorKind::NotFound));
+            }
 
-            let txts = lookup.into_iter().map(|txt| Ok(txt.txt_data().concat()));
+            let txts: Vec<Vec<u8>> = lookup
+                .into_iter()
+                .map(|txt| txt.to_string().into_bytes())
+                .collect();
 
-            let txts: Box<dyn Iterator<Item = _>> = Box::new(txts);
+            let txts: Self::Answer = Box::new(txts.into_iter().map(Ok));
 
             Ok(txts)
         })

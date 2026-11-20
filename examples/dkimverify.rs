@@ -1,4 +1,5 @@
-use hickory_resolver::TokioAsyncResolver;
+use n0_dns_resolver::DnsResolver;
+use std::sync::Arc;
 use std::{env, process};
 use tokio::io::{self, AsyncReadExt};
 use viadkim::Config;
@@ -28,7 +29,7 @@ async fn main() {
     let header = header.parse().unwrap();
     let body = body.as_bytes();
 
-    let resolver = TokioAsyncResolver::tokio(Default::default(), Default::default());
+    let resolver = Arc::new(DnsResolver::system_with_fallback());
 
     let config = Config {
         allow_expired: true,

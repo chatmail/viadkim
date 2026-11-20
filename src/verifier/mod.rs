@@ -580,8 +580,8 @@ struct VerifierTask {
 ///     \r\n\
 ///     Ready for tonight? ;)\r\n";
 ///
-/// // Note: Enable Cargo feature `hickory-resolver` to make an implementation
-/// // of trait `LookupTxt` available for Hickory DNS’s `TokioAsyncResolver`.
+/// // Note: Enable Cargo feature `n0-dns-resolver` to make an implementation
+/// // of trait `LookupTxt` available for n0 DNS’s `DnsResolver`.
 /// let resolver /* = TokioAsyncResolver::tokio(...) */;
 /// # resolver = MockLookupTxt;
 ///

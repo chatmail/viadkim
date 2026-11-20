@@ -41,8 +41,8 @@
 //!
 //! # Cargo features
 //!
-//! The feature **`hickory-resolver`** makes an implementation of trait
-//! [`LookupTxt`][crate::verifier::LookupTxt] available for the [Hickory DNS
+//! The feature **`n0-dns-resolver`** makes an implementation of trait
+//! [`LookupTxt`][crate::verifier::LookupTxt] available for the [n0 DNS
 //! resolver]. `LookupTxt` is the abstraction used for DNS resolution during
 //! verification.
 //!
@@ -53,7 +53,7 @@
 //! subscriber][tracing-subscriber] and enable logging at `trace` level.
 //!
 //! [RFC 6376]: https://www.rfc-editor.org/rfc/rfc6376
-//! [Hickory DNS resolver]: https://crates.io/crates/hickory-resolver
+//! [n0 DNS resolver]: https://crates.io/crates/n0-dns-resolver
 //! [tracing]: https://crates.io/crates/tracing
 //! [tracing-subscriber]: https://crates.io/crates/tracing-subscriber
 

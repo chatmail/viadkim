@@ -248,15 +248,15 @@ mod tests {
         time::resume();
     }
 
-    #[cfg(feature = "hickory-resolver")]
+    #[cfg(feature = "n0-dns-resolver")]
     #[tokio::test]
     #[ignore = "depends on live DNS records"]
     async fn look_up_live_dkim_key_record() {
         use crate::record::DkimKeyRecord;
-        use hickory_resolver::TokioAsyncResolver;
+        use n0_dns_resolver::DnsResolver;
         use std::str::FromStr;
 
-        let resolver = TokioAsyncResolver::tokio(Default::default(), Default::default());
+        let resolver = DnsResolver::system_with_fallback();
 
         let r = look_up_records(&resolver, "gluet.ch", "ed25519.2022")
             .await
