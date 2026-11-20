@@ -1,0 +1,77 @@
+Received: from ci-chatmail.testrun.org (unknown [49.12.217.82])
+	by chat.kamiokan.de (Postfix) with ESMTPS
+	for <qvk9upiys@chat.kamiokan.de>; Fri, 20 Nov 2026 12:23:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+	d=ci-chatmail.testrun.org; s=opendkim; t=1795177409;
+	bh=Frx8Tb0gJu1frg44NwYri8QVrMYS3ps9W8fnEVR27Mg=;
+	h=From:Date:To:Subject:Content-Type:from:reply-to:subject:date:to:
+	 cc:resent-date:resent-from:resent-sender:resent-to:resent-cc:
+	 in-reply-to:references:list-id:list-help:list-unsubscribe:
+	 list-subscribe:list-post:list-owner:list-archive:autocrypt;
+	b=lohDEH1xhD1GKvSNOjymM8VwGJPcwGdN78CZ298dPaAcxSv6AtlseGhAtOHLbDJiJ
+	 M/kqvZA7Qp4G7q6Md1qEKv83jgB5wDmgh49ox+7wn77Wi4imjcQDXpd9VdWi1ms/W4
+	 oq8H+eNc4X1pqmoL2JNC0HBYQfLvQL3gMutC7JisxW1wSM0pfCVsacR0YszC4f0D1C
+	 ko6TvxgrwLcQNT3TLZGjGxTkkBfNQ+irzkFMG2dJir9CDTDyFuS/dbPH0CG1i3al7x
+	 XmxJi3l6c5kCfgo3ONLbko5x8mgftDyn+EgfqBVALJ5W9b0Uqftptw+nlCkbKfmmBq
+	 pPB6c0+qPromA==
+From: <qug5fyfht@ci-chatmail.testrun.org>
+Date: Fri, 20 Nov 2026 12:00:42 +0000
+Message-ID: <6bcfa7d9-6cc5-451c-a30a-beea0cbcd0e6@localhost>
+MIME-Version: 1.0
+To: "hidden-recipients": ;
+Subject: [...]
+Content-Type: multipart/encrypted; protocol="application/pgp-encrypted";
+ boundary="18e9c057cf2b5d33_b7cd23e75465adda_ac0c6f6fd1342829"
+
+
+--18e9c057cf2b5d33_b7cd23e75465adda_ac0c6f6fd1342829
+Content-Type: application/pgp-encrypted; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Version: 1
+
+--18e9c057cf2b5d33_b7cd23e75465adda_ac0c6f6fd1342829
+Content-Type: application/octet-stream; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP MESSAGE-----
+
+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
+IfKeRtpHdz0=
+=sGy2
+-----END PGP MESSAGE-----
+
+--18e9c057cf2b5d33_b7cd23e75465adda_ac0c6f6fd1342829--
+
