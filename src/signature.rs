@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -64,7 +64,7 @@ impl DomainName {
     ///
     /// Note that the string is validated and then encapsulated as-is.
     /// Equivalence comparison is case-insensitive; IDNA-equivalence comparisons
-    /// are done in viadkim where necessary but are not part of the type’s own
+    /// are done in cmdkim where necessary but are not part of the type’s own
     /// equivalence relations.
     ///
     /// # Errors
@@ -167,7 +167,7 @@ impl Selector {
     ///
     /// Note that the string is validated and then encapsulated as-is.
     /// Equivalence comparison is case-insensitive; IDNA-equivalence comparisons
-    /// are done in viadkim where necessary but are not part of the type’s own
+    /// are done in cmdkim where necessary but are not part of the type’s own
     /// equivalence relations.
     ///
     /// # Errors
@@ -604,7 +604,7 @@ impl FromStr for CanonicalizationAlgorithm {
 /// # Examples
 ///
 /// ```
-/// use viadkim::signature::{Canonicalization, CanonicalizationAlgorithm::*};
+/// use cmdkim::signature::{Canonicalization, CanonicalizationAlgorithm::*};
 ///
 /// let c = Canonicalization::from((Relaxed, Simple));
 ///

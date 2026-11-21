@@ -1,11 +1,6 @@
 pub mod common;
 
-use common::MockLookup;
-use std::{
-    io::ErrorKind,
-    str::{self, FromStr},
-};
-use viadkim::{
+use cmdkim::{
     canonicalize::{self, BodyCanonicalizer},
     crypto::{self, HashAlgorithm, KeyType, SigningKey},
     header::{FieldBody, FieldName, HeaderFields},
@@ -17,6 +12,11 @@ use viadkim::{
     },
     signer::{HeaderSelection, SignRequest},
     verifier::{LookupTxt, VerificationStatus},
+};
+use common::MockLookup;
+use std::{
+    io::ErrorKind,
+    str::{self, FromStr},
 };
 
 // These tests exercise the low-level APIs, signing and verifying without going
@@ -38,7 +38,7 @@ async fn low_level_sign() {
     cbody.extend(bc.finish().into_owned());
     let body_hash1 = crypto::digest(hash_alg, &cbody);
 
-    let body_hash = viadkim::encode_base64(body_hash1);
+    let body_hash = cmdkim::encode_base64(body_hash1);
 
     let ident = quoted_printable::encode(b"\"me;you\"@sub.example.com", None);
 
@@ -75,7 +75,7 @@ async fn low_level_sign() {
 
     // append to sig_value
 
-    let s = viadkim::encode_base64(signature);
+    let s = cmdkim::encode_base64(signature);
 
     sig_value.push_str(&s);
 
@@ -104,7 +104,7 @@ async fn low_level_sign() {
 
     let config = Default::default();
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     let result = sigs.into_iter().next().unwrap();
 
@@ -135,7 +135,7 @@ async fn low_level_verify() {
         FieldName::new("To").unwrap(),
     ]);
 
-    let sigs = viadkim::sign(headers, &body, [req]).await.unwrap();
+    let sigs = cmdkim::sign(headers, &body, [req]).await.unwrap();
 
     let sig = sigs.into_iter().next().unwrap().unwrap();
 

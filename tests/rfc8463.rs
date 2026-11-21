@@ -1,8 +1,8 @@
 pub mod common;
 
+use cmdkim::{header::HeaderFields, verifier::VerificationStatus};
 use common::MockLookup;
 use std::io::ErrorKind;
-use viadkim::{header::HeaderFields, verifier::VerificationStatus};
 
 /// Example from RFC 8463, appendix A.
 #[tokio::test]
@@ -31,7 +31,7 @@ Ip3G+2kryOTIKT+l/K4w3QIDAQAB"
     let body = make_body();
     let config = Default::default();
 
-    let sigs = viadkim::verify(&resolver, &headers, &body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, &body, &config).await;
 
     assert_eq!(sigs.len(), 2);
 

@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -63,7 +63,7 @@ pub fn read_rsa_public_key(
     // (the de facto procedure, as shown in examples in appendix C of RFC 6376).
     // Then try reading the bytes as *RSAPublicKey* format
     // (what was actually specified in RFC 6376).
-    // See the module comment in `viadkim::crypto`.
+    // See the module comment in `cmdkim::crypto`.
 
     let key = PublicKey::from_public_key_der(key_data).or_else(|e| {
         // Supply initial error if fallback fails, too.

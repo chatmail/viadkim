@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -543,7 +543,7 @@ struct VerifierTask {
 /// # #[derive(Clone)]
 /// # struct MockLookupTxt;
 /// #
-/// # impl viadkim::verifier::LookupTxt for MockLookupTxt {
+/// # impl cmdkim::verifier::LookupTxt for MockLookupTxt {
 /// #     type Answer = Vec<io::Result<Vec<u8>>>;
 /// #     type Query<'a> = Pin<Box<dyn Future<Output = io::Result<Self::Answer>> + Send + 'a>>;
 /// #
@@ -564,7 +564,7 @@ struct VerifierTask {
 /// #
 /// # let rt = Builder::new_current_thread().enable_all().build().unwrap();
 /// # rt.block_on(async {
-/// use viadkim::*;
+/// use cmdkim::*;
 ///
 /// let header =
 ///     "DKIM-Signature: v=1; d=example.com; s=selector; a=ed25519-sha256; c=relaxed;\r\n\
@@ -681,7 +681,7 @@ impl Verifier {
     /// # Examples
     ///
     /// ```
-    /// # use viadkim::verifier::Verifier;
+    /// # use cmdkim::verifier::Verifier;
     /// # fn f(verifier: &mut Verifier) {
     /// let _ = verifier.process_body_chunk(b"\
     /// Hello friend!\r

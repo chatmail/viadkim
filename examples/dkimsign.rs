@@ -1,11 +1,11 @@
+use cmdkim::{
+    crypto::HashAlgorithm, signer::Expiration, DomainName, Selector, SignRequest, SigningAlgorithm,
+    SigningKey, SigningOutput,
+};
 use std::{env, process};
 use tokio::{
     fs,
     io::{self, AsyncReadExt},
-};
-use viadkim::{
-    crypto::HashAlgorithm, signer::Expiration, DomainName, Selector, SignRequest, SigningAlgorithm,
-    SigningKey, SigningOutput,
 };
 
 #[tokio::main(flavor = "current_thread")]
@@ -45,8 +45,8 @@ async fn main() {
     // Experiment with the various configuration options here.
     //
     // request.copy_headers = true;
-    // request.body_length = viadkim::signer::BodyLength::MessageContent;
-    // request.identity = Some(viadkim::signature::Identity::new("\"abc|;привет\"@中文.example.com").unwrap());
+    // request.body_length = cmdkim::signer::BodyLength::MessageContent;
+    // request.identity = Some(cmdkim::signature::Identity::new("\"abc|;привет\"@中文.example.com").unwrap());
     // request.algorithm = SigningAlgorithm::RsaSha1;
     // request.format.tag_order = Some(Box::new(|a, b| a.cmp(b)));
     // request.format.line_width = 64.try_into().unwrap();
@@ -65,7 +65,7 @@ async fn main() {
     let header = header.parse().unwrap();
     let body = body.as_bytes();
 
-    let sigs = viadkim::sign(header, body, [request]).await.unwrap();
+    let sigs = cmdkim::sign(header, body, [request]).await.unwrap();
 
     for sig in sigs {
         match sig {

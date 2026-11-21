@@ -1,11 +1,11 @@
 pub mod common;
 
-use std::str::FromStr;
-use viadkim::{
+use cmdkim::{
     header::{FieldBody, FieldName, HeaderFields},
     signature::{CanonicalizationAlgorithm, DomainName, Selector, SigningAlgorithm},
     signer::{Expiration, SignRequest, Timestamp},
 };
+use std::str::FromStr;
 
 #[tokio::test]
 async fn basic_sign() {
@@ -34,7 +34,7 @@ async fn basic_sign() {
     request.format.indentation = "  ".into();
     request.format.tag_order = Some(Box::new(Ord::cmp));
 
-    let sigs = viadkim::sign(headers, &body, [request]).await.unwrap();
+    let sigs = cmdkim::sign(headers, &body, [request]).await.unwrap();
 
     assert_eq!(sigs.len(), 1);
 

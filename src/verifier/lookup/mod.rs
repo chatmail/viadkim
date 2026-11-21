@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -55,7 +55,7 @@ pub trait LookupTxt: Send + Sync {
     fn lookup_txt(&self, domain: &str) -> Self::Query<'_>;
 }
 
-// Makes it possible to pass `Arc<T>` to viadkim::verify
+// Makes it possible to pass `Arc<T>` to cmdkim::verify
 // and other functions taking &T where T: LookupTxt + Clone,
 // in case of a resolver type `T` that doesn't implement `Clone`.
 // (e.g. n0's `DnsResolver`)

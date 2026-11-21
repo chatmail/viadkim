@@ -1,4 +1,4 @@
-// viadkim – implementation of the DKIM specification
+// cmdkim – implementation of the DKIM specification
 // Copyright © 2022–2024 David Bürgin <dbuergin@gluet.ch>
 // Copyright © 2026      Chatmail Developers
 //
@@ -551,7 +551,7 @@ struct SignerTask<T> {
 /// #
 /// # let rt = Builder::new_current_thread().enable_all().build().unwrap();
 /// # rt.block_on(async {
-/// use viadkim::*;
+/// use cmdkim::*;
 ///
 /// let header = "From: me@example.com\r\n\
 ///     To: you@example.org\r\n\
@@ -572,7 +572,7 @@ struct SignerTask<T> {
 ///
 /// let request = SignRequest::new(domain, selector, algorithm, signing_key);
 /// # let mut request = request;
-/// # request.timestamp = viadkim::signer::Timestamp::Exact(1687435395);
+/// # request.timestamp = cmdkim::signer::Timestamp::Exact(1687435395);
 ///
 /// let mut signer = Signer::prepare_signing(header, [request])?;
 ///
@@ -670,7 +670,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use viadkim::{crypto::SigningKey, signer::Signer};
+    /// # use cmdkim::{crypto::SigningKey, signer::Signer};
     /// # fn f<T: AsRef<SigningKey>>(signer: &mut Signer<T>) {
     /// let _ = signer.process_body_chunk(b"\
     /// Hello friend!\r

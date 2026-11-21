@@ -1,8 +1,8 @@
 pub mod common;
 
+use cmdkim::verifier::{Config, VerificationStatus};
 use n0_dns_resolver::DnsResolver;
 use std::sync::Arc;
-use viadkim::verifier::{Config, VerificationStatus};
 
 /// Verify my signatures on a real message.
 #[tokio::test]
@@ -23,7 +23,7 @@ async fn live_verify() {
         ..Default::default()
     };
 
-    let sigs = viadkim::verify(&resolver, &headers, body.as_bytes(), &config).await;
+    let sigs = cmdkim::verify(&resolver, &headers, body.as_bytes(), &config).await;
 
     assert_eq!(sigs.len(), 1);
 

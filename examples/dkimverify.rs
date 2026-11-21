@@ -1,8 +1,8 @@
+use cmdkim::Config;
 use n0_dns_resolver::DnsResolver;
 use std::sync::Arc;
 use std::{env, process};
 use tokio::io::{self, AsyncReadExt};
-use viadkim::Config;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -43,7 +43,7 @@ async fn main() {
         ..Default::default()
     };
 
-    let sigs = viadkim::verify(&resolver, &header, body, &config).await;
+    let sigs = cmdkim::verify(&resolver, &header, body, &config).await;
 
     for (i, sig) in sigs.into_iter().enumerate() {
         println!();
