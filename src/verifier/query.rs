@@ -258,7 +258,7 @@ mod tests {
 
         let resolver = DnsResolver::system_with_fallback();
 
-        let r = look_up_records(&resolver, "gluet.ch", "ed25519.2022")
+        let r = look_up_records(&resolver, "ci-chatmail.testrun.org", "opendkim")
             .await
             .unwrap();
 
