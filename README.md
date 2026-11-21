@@ -85,7 +85,7 @@ on standard input. It prints each verification result as Rust data structures.
 Example invocation:
 
 ```
-cargo run --features hickory-resolver \
+cargo run --features n0-dns-resolver \
   --example dkimverify < /path/to/msg-to-verify
 ```
 
